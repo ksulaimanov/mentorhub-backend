@@ -1,0 +1,40 @@
+create table student_profiles (
+                                  id bigserial primary key,
+                                  user_id bigint not null unique,
+                                  first_name varchar(100),
+                                  last_name varchar(100),
+                                  avatar_key varchar(255),
+                                  bio text,
+                                  timezone varchar(100),
+                                  phone varchar(50),
+                                  city varchar(100),
+                                  created_at timestamp not null default now(),
+                                  updated_at timestamp not null default now(),
+                                  constraint fk_student_profiles_user foreign key (user_id) references users(id) on delete cascade
+);
+
+create table mentor_profiles (
+                                 id bigserial primary key,
+                                 user_id bigint not null unique,
+                                 first_name varchar(100),
+                                 last_name varchar(100),
+                                 avatar_key varchar(255),
+                                 headline varchar(255),
+                                 bio text,
+                                 specialization varchar(255),
+                                 years_experience integer,
+                                 lesson_format_online boolean not null default false,
+                                 lesson_format_offline boolean not null default false,
+                                 lesson_format_hybrid boolean not null default false,
+                                 city varchar(100),
+                                 address_text varchar(255),
+                                 meeting_link varchar(500),
+                                 price_per_hour numeric(12,2),
+                                 average_rating numeric(3,2) not null default 0,
+                                 lessons_completed integer not null default 0,
+                                 verified boolean not null default false,
+                                 is_public boolean not null default true,
+                                 created_at timestamp not null default now(),
+                                 updated_at timestamp not null default now(),
+                                 constraint fk_mentor_profiles_user foreign key (user_id) references users(id) on delete cascade
+);

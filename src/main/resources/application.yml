@@ -26,6 +26,12 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
 logging:
   level:
     org.springframework.security: INFO
@@ -33,7 +39,7 @@ logging:
 
 app:
   jwt:
-    secret: change-this-in-local-env-to-a-long-secure-secret-key
+    secret: c3VwZXItc2VjdXJlLXRlc3Qta2V5LXN1cGVyLXNlY3VyZS10ZXN0LWtleQ==
     access-token-expiration-minutes: 15
     refresh-token-expiration-days: 30
 
@@ -42,9 +48,3 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info
