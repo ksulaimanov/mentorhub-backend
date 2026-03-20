@@ -1,0 +1,20 @@
+create table bookings (
+                          id bigserial primary key,
+                          student_id bigint not null,
+                          mentor_id bigint not null,
+                          availability_slot_id bigint not null unique,
+                          start_at timestamp not null,
+                          end_at timestamp not null,
+                          timezone varchar(100) not null,
+                          lesson_format varchar(20) not null,
+                          meeting_link varchar(500),
+                          address_text varchar(255),
+                          status varchar(30) not null,
+                          student_note varchar(1000),
+                          mentor_note varchar(1000),
+                          created_at timestamp not null default now(),
+                          updated_at timestamp not null default now(),
+                          constraint fk_bookings_student foreign key (student_id) references student_profiles(id) on delete cascade,
+                          constraint fk_bookings_mentor foreign key (mentor_id) references mentor_profiles(id) on delete cascade,
+                          constraint fk_bookings_slot foreign key (availability_slot_id) references mentor_availability_slots(id) on delete restrict
+);
