@@ -11,6 +11,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
+import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
+import kg.kut.os.mentorhub.student.entity.StudentProfile;
+import kg.kut.os.mentorhub.student.repository.StudentProfileRepository;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -27,6 +31,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final long refreshTokenExpirationDays;
+    private final StudentProfileRepository studentProfileRepository;
+    private final MentorProfileRepository mentorProfileRepository;
 
     public AuthService(
             UserRepository userRepository,
@@ -34,6 +40,8 @@ public class AuthService {
             RefreshTokenRepository refreshTokenRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
+            StudentProfileRepository studentProfileRepository,
+            MentorProfileRepository mentorProfileRepository,
             @Value("${app.jwt.refresh-token-expiration-days}") long refreshTokenExpirationDays
     ) {
         this.userRepository = userRepository;
@@ -41,6 +49,8 @@ public class AuthService {
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.studentProfileRepository = studentProfileRepository;
+        this.mentorProfileRepository = mentorProfileRepository;
         this.refreshTokenExpirationDays = refreshTokenExpirationDays;
     }
 
@@ -119,6 +129,23 @@ public class AuthService {
         user.setRoles(Set.of(role));
 
         User savedUser = userRepository.save(user);
+
+        if (roleCode == RoleCode.ROLE_STUDENT) {
+            StudentProfile profile = new StudentProfile();
+            profile.setUser(savedUser);
+            studentProfileRepository.save(profile);
+        }
+
+        if (roleCode == RoleCode.ROLE_MENTOR) {
+            MentorProfile profile = new MentorProfile();
+            profile.setUser(savedUser);
+            profile.setVerified(false);
+            profile.setPublic(true);
+            profile.setLessonFormatOnline(false);
+            profile.setLessonFormatOffline(false);
+            profile.setLessonFormatHybrid(false);
+            mentorProfileRepository.save(profile);
+        }
 
         String accessToken = jwtService.generateAccessToken(savedUser);
         String refreshToken = createAndSaveRefreshToken(savedUser);
