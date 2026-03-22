@@ -1,8 +1,16 @@
 package kg.kut.os.mentorhub.auth.controller;
 
 import jakarta.validation.Valid;
-import kg.kut.os.mentorhub.auth.dto.*;
+import kg.kut.os.mentorhub.auth.dto.LoginRequest;
+import kg.kut.os.mentorhub.auth.dto.LogoutRequest;
+import kg.kut.os.mentorhub.auth.dto.RefreshTokenRequest;
+import kg.kut.os.mentorhub.auth.dto.RegisterMentorRequest;
+import kg.kut.os.mentorhub.auth.dto.RegisterStudentRequest;
+import kg.kut.os.mentorhub.auth.dto.ResendVerificationRequest;
+import kg.kut.os.mentorhub.auth.dto.VerifyEmailRequest;
+import kg.kut.os.mentorhub.auth.dto.AuthResponse;
 import kg.kut.os.mentorhub.auth.service.AuthService;
+import kg.kut.os.mentorhub.common.dto.MessageResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,13 +25,27 @@ public class AuthController {
     }
 
     @PostMapping("/register/student")
-    public ResponseEntity<AuthResponse> registerStudent(@Valid @RequestBody RegisterStudentRequest request) {
-        return ResponseEntity.ok(authService.registerStudent(request));
+    public ResponseEntity<MessageResponse> registerStudent(@Valid @RequestBody RegisterStudentRequest request) {
+        authService.registerStudent(request);
+        return ResponseEntity.ok(new MessageResponse("Код подтверждения отправлен на email"));
     }
 
     @PostMapping("/register/mentor")
-    public ResponseEntity<AuthResponse> registerMentor(@Valid @RequestBody RegisterMentorRequest request) {
-        return ResponseEntity.ok(authService.registerMentor(request));
+    public ResponseEntity<MessageResponse> registerMentor(@Valid @RequestBody RegisterMentorRequest request) {
+        authService.registerMentor(request);
+        return ResponseEntity.ok(new MessageResponse("Код подтверждения отправлен на email"));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<MessageResponse> verifyEmail(@Valid @RequestBody VerifyEmailRequest request) {
+        authService.verifyEmail(request);
+        return ResponseEntity.ok(new MessageResponse("Email успешно подтверждён"));
+    }
+
+    @PostMapping("/resend-verification")
+    public ResponseEntity<MessageResponse> resendVerification(@Valid @RequestBody ResendVerificationRequest request) {
+        authService.resendVerification(request);
+        return ResponseEntity.ok(new MessageResponse("Новый код подтверждения отправлен"));
     }
 
     @PostMapping("/login")

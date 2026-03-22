@@ -43,6 +43,11 @@ app:
     access-token-expiration-minutes: 15
     refresh-token-expiration-days: 30
 
+  verification:
+    code-expiration-minutes: 15
+    resend-cooldown-seconds: 60
+    max-attempts: 5
+
 springdoc:
   api-docs:
     path: /api-docs
