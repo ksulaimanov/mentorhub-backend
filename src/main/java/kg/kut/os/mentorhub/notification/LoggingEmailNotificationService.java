@@ -15,4 +15,9 @@ public class LoggingEmailNotificationService implements EmailNotificationService
     public void sendEmailVerificationCode(String toEmail, String code) {
         log.info("MAIL DISABLED. Verification code for {}: {}", toEmail, code);
     }
+
+    @Override
+    public void sendPasswordResetCode(String toEmail, String code) {
+        log.info("MAIL DISABLED. Password reset code for {}: {}", toEmail, code);
+    }
 }

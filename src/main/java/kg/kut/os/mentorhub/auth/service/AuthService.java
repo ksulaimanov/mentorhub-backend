@@ -1,24 +1,9 @@
 package kg.kut.os.mentorhub.auth.service;
 
 import jakarta.transaction.Transactional;
-import kg.kut.os.mentorhub.auth.dto.AuthResponse;
-import kg.kut.os.mentorhub.auth.dto.LoginRequest;
-import kg.kut.os.mentorhub.auth.dto.LogoutRequest;
-import kg.kut.os.mentorhub.auth.dto.RefreshTokenRequest;
-import kg.kut.os.mentorhub.auth.dto.RegisterMentorRequest;
-import kg.kut.os.mentorhub.auth.dto.RegisterStudentRequest;
-import kg.kut.os.mentorhub.auth.dto.ResendVerificationRequest;
-import kg.kut.os.mentorhub.auth.dto.VerifyEmailRequest;
-import kg.kut.os.mentorhub.auth.entity.EmailVerificationCode;
-import kg.kut.os.mentorhub.auth.entity.RefreshToken;
-import kg.kut.os.mentorhub.auth.entity.Role;
-import kg.kut.os.mentorhub.auth.entity.RoleCode;
-import kg.kut.os.mentorhub.auth.entity.User;
-import kg.kut.os.mentorhub.auth.entity.UserStatus;
-import kg.kut.os.mentorhub.auth.repository.EmailVerificationCodeRepository;
-import kg.kut.os.mentorhub.auth.repository.RefreshTokenRepository;
-import kg.kut.os.mentorhub.auth.repository.RoleRepository;
-import kg.kut.os.mentorhub.auth.repository.UserRepository;
+import kg.kut.os.mentorhub.auth.dto.*;
+import kg.kut.os.mentorhub.auth.entity.*;
+import kg.kut.os.mentorhub.auth.repository.*;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import kg.kut.os.mentorhub.notification.EmailNotificationService;
@@ -48,6 +33,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailNotificationService emailNotificationService;
+    private final PasswordResetCodeRepository passwordResetCodeRepository;
 
     private final long refreshTokenExpirationDays;
     private final long verificationCodeExpirationMinutes;
@@ -63,7 +49,7 @@ public class AuthService {
             MentorProfileRepository mentorProfileRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            EmailNotificationService emailNotificationService,
+            EmailNotificationService emailNotificationService, PasswordResetCodeRepository passwordResetCodeRepository,
             @Value("${app.jwt.refresh-token-expiration-days}") long refreshTokenExpirationDays,
             @Value("${app.verification.code-expiration-minutes}") long verificationCodeExpirationMinutes,
             @Value("${app.verification.resend-cooldown-seconds}") long resendCooldownSeconds,
@@ -78,6 +64,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.emailNotificationService = emailNotificationService;
+        this.passwordResetCodeRepository = passwordResetCodeRepository;
         this.refreshTokenExpirationDays = refreshTokenExpirationDays;
         this.verificationCodeExpirationMinutes = verificationCodeExpirationMinutes;
         this.resendCooldownSeconds = resendCooldownSeconds;
@@ -295,5 +282,89 @@ public class AuthService {
     private String generateSixDigitCode() {
         int value = 100000 + (int) (Math.random() * 900000);
         return String.valueOf(value);
+    }
+
+    public void forgotPassword(ForgotPasswordRequest request) {
+        String normalizedEmail = normalizeEmail(request.getEmail());
+
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+
+        if (user == null) {
+            return;
+        }
+
+        if (!user.isEmailVerified() || user.getStatus() != UserStatus.ACTIVE) {
+            return;
+        }
+
+        PasswordResetCode latestCode = passwordResetCodeRepository
+                .findTopByUserOrderByCreatedAtDesc(user)
+                .orElse(null);
+
+        if (latestCode != null &&
+                latestCode.getCreatedAt().plusSeconds(resendCooldownSeconds).isAfter(LocalDateTime.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "Код был отправлен недавно. Попробуйте чуть позже"
+            );
+        }
+
+        issueAndSendPasswordResetCode(user);
+    }
+
+    public void resetPassword(ResetPasswordRequest request) {
+        String normalizedEmail = normalizeEmail(request.getEmail());
+
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Пользователь с таким email не найден"));
+
+        PasswordResetCode resetCode = passwordResetCodeRepository
+                .findTopByUserOrderByCreatedAtDesc(user)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Код сброса не найден"));
+
+        if (resetCode.isUsed()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Код сброса уже использован");
+        }
+
+        if (resetCode.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Срок действия кода истёк");
+        }
+
+        if (resetCode.getAttempts() >= maxVerificationAttempts) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Превышено количество попыток ввода кода");
+        }
+
+        if (!resetCode.getCode().equals(request.getCode())) {
+            resetCode.setAttempts(resetCode.getAttempts() + 1);
+            passwordResetCodeRepository.save(resetCode);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Неверный код сброса");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        resetCode.setUsed(true);
+        passwordResetCodeRepository.save(resetCode);
+
+        revokeAllRefreshTokens(user);
+    }
+
+    private void issueAndSendPasswordResetCode(User user) {
+        String code = generateSixDigitCode();
+
+        PasswordResetCode resetCode = new PasswordResetCode();
+        resetCode.setUser(user);
+        resetCode.setCode(code);
+        resetCode.setExpiresAt(LocalDateTime.now().plusMinutes(verificationCodeExpirationMinutes));
+        resetCode.setUsed(false);
+        resetCode.setAttempts(0);
+
+        passwordResetCodeRepository.save(resetCode);
+        emailNotificationService.sendPasswordResetCode(user.getEmail(), code);
+    }
+
+    private void revokeAllRefreshTokens(User user) {
+        refreshTokenRepository.findAllByUserId(user.getId())
+                .forEach(token -> token.setRevoked(true));
     }
 }

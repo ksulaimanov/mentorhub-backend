@@ -1,14 +1,7 @@
 package kg.kut.os.mentorhub.auth.controller;
 
 import jakarta.validation.Valid;
-import kg.kut.os.mentorhub.auth.dto.LoginRequest;
-import kg.kut.os.mentorhub.auth.dto.LogoutRequest;
-import kg.kut.os.mentorhub.auth.dto.RefreshTokenRequest;
-import kg.kut.os.mentorhub.auth.dto.RegisterMentorRequest;
-import kg.kut.os.mentorhub.auth.dto.RegisterStudentRequest;
-import kg.kut.os.mentorhub.auth.dto.ResendVerificationRequest;
-import kg.kut.os.mentorhub.auth.dto.VerifyEmailRequest;
-import kg.kut.os.mentorhub.auth.dto.AuthResponse;
+import kg.kut.os.mentorhub.auth.dto.*;
 import kg.kut.os.mentorhub.auth.service.AuthService;
 import kg.kut.os.mentorhub.common.dto.MessageResponse;
 import org.springframework.http.ResponseEntity;
@@ -62,5 +55,17 @@ public class AuthController {
     public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
         authService.logout(request);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.forgotPassword(request);
+        return ResponseEntity.ok(new MessageResponse("Если email зарегистрирован, код для сброса отправлен"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
+        return ResponseEntity.ok(new MessageResponse("Пароль успешно обновлён"));
     }
 }
