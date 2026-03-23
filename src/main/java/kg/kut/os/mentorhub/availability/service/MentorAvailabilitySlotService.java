@@ -7,7 +7,7 @@ import kg.kut.os.mentorhub.availability.entity.LessonFormat;
 import kg.kut.os.mentorhub.availability.entity.MentorAvailabilitySlot;
 import kg.kut.os.mentorhub.availability.repository.MentorAvailabilitySlotRepository;
 import kg.kut.os.mentorhub.booking.entity.BookingStatus;
-import kg.kut.os.mentorhub.booking.repository.BookingRepository; // Импорт репозитория
+import kg.kut.os.mentorhub.booking.repository.BookingRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
@@ -39,11 +39,14 @@ public class MentorAvailabilitySlotService {
         validateTimeRange(request.getStartAt(), request.getEndAt());
         validateFormatSpecificFields(request.getLessonFormat(), request.getMeetingLink(), request.getAddressText());
 
+        if (request.getCapacity() == null || request.getCapacity() < 1) {
+            throw new BadRequestException("Количество мест должно быть не меньше 1");
+        }
+
         MentorProfile mentor = mentorProfileRepository.findByUserId(mentorUserId)
                 .orElseThrow(() -> new BadRequestException("Профиль ментора не найден"));
 
         MentorAvailabilitySlot slot = new MentorAvailabilitySlot();
-        slot.setCapacity(request.getCapacity());
         slot.setMentor(mentor);
         slot.setStartAt(request.getStartAt());
         slot.setEndAt(request.getEndAt());
@@ -51,11 +54,8 @@ public class MentorAvailabilitySlotService {
         slot.setLessonFormat(request.getLessonFormat());
         slot.setMeetingLink(request.getMeetingLink());
         slot.setAddressText(request.getAddressText());
+        slot.setCapacity(request.getCapacity());
         slot.setActive(true);
-
-        if (request.getCapacity() == null || request.getCapacity() < 1) {
-            throw new BadRequestException("Количество мест должно быть не меньше 1");
-        }
 
         return map(slotRepository.save(slot));
     }
@@ -71,8 +71,21 @@ public class MentorAvailabilitySlotService {
         validateTimeRange(request.getStartAt(), request.getEndAt());
         validateFormatSpecificFields(request.getLessonFormat(), request.getMeetingLink(), request.getAddressText());
 
+        if (request.getCapacity() == null || request.getCapacity() < 1) {
+            throw new BadRequestException("Количество мест должно быть не меньше 1");
+        }
+
         MentorAvailabilitySlot slot = slotRepository.findByIdAndMentorUserId(slotId, mentorUserId)
                 .orElseThrow(() -> new BadRequestException("Слот ментора не найден"));
+
+        long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
+                slot.getId(),
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
+        );
+
+        if (request.getCapacity() < bookedCount) {
+            throw new BadRequestException("Нельзя уменьшить количество мест ниже числа активных записей");
+        }
 
         slot.setStartAt(request.getStartAt());
         slot.setEndAt(request.getEndAt());
@@ -80,6 +93,7 @@ public class MentorAvailabilitySlotService {
         slot.setLessonFormat(request.getLessonFormat());
         slot.setMeetingLink(request.getMeetingLink());
         slot.setAddressText(request.getAddressText());
+        slot.setCapacity(request.getCapacity());
         slot.setActive(request.isActive());
 
         return map(slot);
@@ -109,9 +123,11 @@ public class MentorAvailabilitySlotService {
         if (format == LessonFormat.ONLINE && (meetingLink == null || meetingLink.isBlank())) {
             throw new BadRequestException("Для онлайн-урока нужно указать ссылку на встречу");
         }
+
         if (format == LessonFormat.OFFLINE && (addressText == null || addressText.isBlank())) {
             throw new BadRequestException("Для офлайн-урока нужно указать адрес");
         }
+
         if (format == LessonFormat.HYBRID) {
             if ((meetingLink == null || meetingLink.isBlank()) && (addressText == null || addressText.isBlank())) {
                 throw new BadRequestException("Для гибридного урока нужно указать ссылку или адрес");
@@ -135,7 +151,6 @@ public class MentorAvailabilitySlotService {
         response.setMeetingLink(slot.getMeetingLink());
         response.setAddressText(slot.getAddressText());
         response.setActive(slot.isActive());
-
         response.setCapacity(slot.getCapacity());
         response.setBookedCount((int) bookedCount);
         response.setAvailableSeats(Math.max(slot.getCapacity() - (int) bookedCount, 0));
