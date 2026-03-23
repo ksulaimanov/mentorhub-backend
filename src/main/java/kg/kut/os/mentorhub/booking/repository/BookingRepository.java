@@ -12,4 +12,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findAllByMentorUserIdOrderByStartAtAsc(Long userId);
     Optional<Booking> findByIdAndStudentUserId(Long bookingId, Long userId);
     Optional<Booking> findByIdAndMentorUserId(Long bookingId, Long userId);
+    long countByAvailabilitySlotIdAndStatusIn(Long availabilitySlotId, java.util.Collection<kg.kut.os.mentorhub.booking.entity.BookingStatus> statuses);
 }

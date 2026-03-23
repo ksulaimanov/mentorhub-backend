@@ -14,6 +14,9 @@ public class AvailabilitySlotResponse {
     private LessonFormat lessonFormat;
     private String meetingLink;
     private String addressText;
+    private Integer capacity;
+    private Integer bookedCount;
+    private Integer availableSeats;
     private boolean active;
 
     public AvailabilitySlotResponse() {
@@ -51,6 +54,18 @@ public class AvailabilitySlotResponse {
         return addressText;
     }
 
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public Integer getBookedCount() {
+        return bookedCount;
+    }
+
+    public Integer getAvailableSeats() {
+        return availableSeats;
+    }
+
     public boolean isActive() {
         return active;
     }
@@ -85,6 +100,18 @@ public class AvailabilitySlotResponse {
 
     public void setAddressText(String addressText) {
         this.addressText = addressText;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
+    }
+
+    public void setBookedCount(Integer bookedCount) {
+        this.bookedCount = bookedCount;
+    }
+
+    public void setAvailableSeats(Integer availableSeats) {
+        this.availableSeats = availableSeats;
     }
 
     public void setActive(boolean active) {

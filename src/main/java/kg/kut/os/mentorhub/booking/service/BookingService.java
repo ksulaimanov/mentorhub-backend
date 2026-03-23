@@ -22,6 +22,11 @@ import java.util.List;
 @Transactional
 public class BookingService {
 
+    private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES = List.of(
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED
+    );
+
     private final BookingRepository bookingRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final MentorAvailabilitySlotRepository slotRepository;
@@ -47,12 +52,17 @@ public class BookingService {
             throw new BadRequestException("Слот недоступен для записи");
         }
 
-        if (slot.getStartAt().isBefore(LocalDateTime.now())) {
+        if (!slot.getStartAt().isAfter(LocalDateTime.now())) {
             throw new BadRequestException("Нельзя записаться на прошедший слот");
         }
 
-        if (bookingRepository.existsByAvailabilitySlotId(slot.getId())) {
-            throw new BadRequestException("Этот слот уже забронирован");
+        long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
+                slot.getId(),
+                ACTIVE_BOOKING_STATUSES
+        );
+
+        if (bookedCount >= slot.getCapacity()) {
+            throw new BadRequestException("Свободных мест в этом слоте больше нет");
         }
 
         MentorProfile mentor = slot.getMentor();
@@ -70,9 +80,9 @@ public class BookingService {
         booking.setStatus(BookingStatus.PENDING);
         booking.setStudentNote(request.getStudentNote());
 
-        slot.setActive(false);
+        Booking savedBooking = bookingRepository.save(booking);
 
-        return map(bookingRepository.save(booking));
+        return map(savedBooking);
     }
 
     public List<BookingResponse> getStudentBookings(Long studentUserId) {
@@ -100,7 +110,6 @@ public class BookingService {
         }
 
         booking.setStatus(BookingStatus.CANCELLED_BY_STUDENT);
-        booking.getAvailabilitySlot().setActive(true);
     }
 
     public BookingResponse updateMentorBookingStatus(Long mentorUserId, Long bookingId, UpdateBookingStatusRequest request) {
@@ -120,10 +129,6 @@ public class BookingService {
 
         booking.setStatus(request.getStatus());
         booking.setMentorNote(request.getMentorNote());
-
-        if (request.getStatus() == BookingStatus.CANCELLED_BY_MENTOR) {
-            booking.getAvailabilitySlot().setActive(true);
-        }
 
         return map(booking);
     }

@@ -36,6 +36,9 @@ public class MentorAvailabilitySlot {
     @Column(name = "address_text", length = 255)
     private String addressText;
 
+    @Column(nullable = false)
+    private Integer capacity;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
@@ -50,6 +53,11 @@ public class MentorAvailabilitySlot {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
+
+        if (capacity == null || capacity < 1) {
+            capacity = 1;
+        }
+
         if (!isActive) {
             isActive = true;
         }
@@ -95,6 +103,10 @@ public class MentorAvailabilitySlot {
         return addressText;
     }
 
+    public Integer getCapacity() {
+        return capacity;
+    }
+
     public boolean isActive() {
         return isActive;
     }
@@ -125,6 +137,10 @@ public class MentorAvailabilitySlot {
 
     public void setAddressText(String addressText) {
         this.addressText = addressText;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
     }
 
     public void setActive(boolean active) {

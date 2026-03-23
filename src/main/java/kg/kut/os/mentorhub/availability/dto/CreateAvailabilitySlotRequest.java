@@ -1,6 +1,7 @@
 package kg.kut.os.mentorhub.availability.dto;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -31,6 +32,10 @@ public class CreateAvailabilitySlotRequest {
     @Size(max = 255)
     private String addressText;
 
+    @NotNull
+    @Min(1)
+    private Integer capacity;
+
     public CreateAvailabilitySlotRequest() {
     }
 
@@ -58,6 +63,10 @@ public class CreateAvailabilitySlotRequest {
         return addressText;
     }
 
+    public Integer getCapacity() {
+        return capacity;
+    }
+
     public void setStartAt(LocalDateTime startAt) {
         this.startAt = startAt;
     }
@@ -80,5 +89,9 @@ public class CreateAvailabilitySlotRequest {
 
     public void setAddressText(String addressText) {
         this.addressText = addressText;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
     }
 }

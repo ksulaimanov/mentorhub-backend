@@ -24,8 +24,8 @@ public class Booking {
     @JoinColumn(name = "mentor_id", nullable = false)
     private MentorProfile mentor;
 
-    @OneToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "availability_slot_id", nullable = false, unique = true)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "availability_slot_id", nullable = false)
     private MentorAvailabilitySlot availabilitySlot;
 
     @Column(name = "start_at", nullable = false)
