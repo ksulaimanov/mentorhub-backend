@@ -1,6 +1,7 @@
 package kg.kut.os.mentorhub.mentor.service;
 
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.dto.MentorProfileResponse;
 import kg.kut.os.mentorhub.mentor.dto.UpdateMentorProfileRequest;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
@@ -13,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class MentorProfileService {
 
     private final MentorProfileRepository mentorProfileRepository;
+    private final StorageService storageService;
 
-    public MentorProfileService(MentorProfileRepository mentorProfileRepository) {
+    public MentorProfileService(MentorProfileRepository mentorProfileRepository, StorageService storageService) {
         this.mentorProfileRepository = mentorProfileRepository;
+        this.storageService = storageService;
     }
 
     public MentorProfileResponse getByUserId(Long userId) {
@@ -55,7 +58,10 @@ public class MentorProfileService {
         response.setEmail(profile.getUser().getEmail());
         response.setFirstName(profile.getFirstName());
         response.setLastName(profile.getLastName());
+
         response.setAvatarKey(profile.getAvatarKey());
+        response.setAvatarUrl(storageService.buildPublicUrl(profile.getAvatarKey()));
+
         response.setHeadline(profile.getHeadline());
         response.setBio(profile.getBio());
         response.setSpecialization(profile.getSpecialization());

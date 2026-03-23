@@ -8,6 +8,7 @@ public class StudentProfileResponse {
     private String firstName;
     private String lastName;
     private String avatarKey;
+    private String avatarUrl;
     private String bio;
     private String timezone;
     private String phone;
@@ -38,6 +39,10 @@ public class StudentProfileResponse {
 
     public String getAvatarKey() {
         return avatarKey;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 
     public String getBio() {
@@ -78,6 +83,10 @@ public class StudentProfileResponse {
 
     public void setAvatarKey(String avatarKey) {
         this.avatarKey = avatarKey;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public void setBio(String bio) {
