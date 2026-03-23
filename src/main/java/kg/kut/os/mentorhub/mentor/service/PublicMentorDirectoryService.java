@@ -1,6 +1,10 @@
 package kg.kut.os.mentorhub.mentor.service;
 
+import kg.kut.os.mentorhub.availability.dto.AvailabilitySlotResponse;
+import kg.kut.os.mentorhub.availability.entity.MentorAvailabilitySlot;
+import kg.kut.os.mentorhub.availability.repository.MentorAvailabilitySlotRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryFilter;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryItemResponse;
 import kg.kut.os.mentorhub.mentor.dto.PublicMentorProfileResponse;
@@ -8,147 +12,188 @@ import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
+@Transactional(readOnly = true)
 public class PublicMentorDirectoryService {
 
     private final MentorProfileRepository mentorProfileRepository;
+    private final MentorAvailabilitySlotRepository mentorAvailabilitySlotRepository;
+    private final StorageService storageService;
 
-    public PublicMentorDirectoryService(MentorProfileRepository mentorProfileRepository) {
+    public PublicMentorDirectoryService(
+            MentorProfileRepository mentorProfileRepository,
+            MentorAvailabilitySlotRepository mentorAvailabilitySlotRepository,
+            StorageService storageService
+    ) {
         this.mentorProfileRepository = mentorProfileRepository;
+        this.mentorAvailabilitySlotRepository = mentorAvailabilitySlotRepository;
+        this.storageService = storageService;
     }
 
     public List<MentorDirectoryItemResponse> getDirectory(MentorDirectoryFilter filter) {
-        Sort sort = resolveSort(filter.getSortBy());
+        Sort sort = resolveSort(filter == null ? null : filter.getSortBy());
 
-        return mentorProfileRepository.findAllByIsPublicTrue(sort)
-                .stream()
-                .filter(mentor -> matchesQuery(mentor, filter.getQuery()))
-                .filter(mentor -> matchesSpecialization(mentor, filter.getSpecialization()))
-                .filter(mentor -> matchesCity(mentor, filter.getCity()))
-                .filter(mentor -> matchesFormats(mentor, filter.getOnline(), filter.getOffline(), filter.getHybrid()))
-                .map(this::toDirectoryItem)
-                .collect(Collectors.toList());
+        List<MentorProfile> profiles = mentorProfileRepository.findAllByIsPublicTrue(sort);
+
+        Stream<MentorProfile> stream = profiles.stream();
+
+        if (filter != null) {
+            if (hasText(filter.getQuery())) {
+                String query = normalize(filter.getQuery());
+
+                stream = stream.filter(profile ->
+                        contains(profile.getFirstName(), query)
+                                || contains(profile.getLastName(), query)
+                                || contains(profile.getHeadline(), query)
+                                || contains(profile.getSpecialization(), query)
+                );
+            }
+
+            if (hasText(filter.getSpecialization())) {
+                String specialization = normalize(filter.getSpecialization());
+                stream = stream.filter(profile -> contains(profile.getSpecialization(), specialization));
+            }
+
+            if (hasText(filter.getCity())) {
+                String city = normalize(filter.getCity());
+                stream = stream.filter(profile -> contains(profile.getCity(), city));
+            }
+
+            if (Boolean.TRUE.equals(filter.getOnline())) {
+                stream = stream.filter(MentorProfile::isLessonFormatOnline);
+            }
+
+            if (Boolean.TRUE.equals(filter.getOffline())) {
+                stream = stream.filter(MentorProfile::isLessonFormatOffline);
+            }
+
+            if (Boolean.TRUE.equals(filter.getHybrid())) {
+                stream = stream.filter(MentorProfile::isLessonFormatHybrid);
+            }
+        }
+
+        return stream
+                .map(this::mapDirectoryItem)
+                .toList();
     }
 
     public PublicMentorProfileResponse getPublicProfile(Long mentorId) {
-        MentorProfile mentor = mentorProfileRepository.findByIdAndIsPublicTrue(mentorId)
+        MentorProfile profile = mentorProfileRepository.findByIdAndIsPublicTrue(mentorId)
                 .orElseThrow(() -> new BadRequestException("Публичный профиль ментора не найден"));
 
-        return toPublicProfile(mentor);
+        return mapPublicProfile(profile);
     }
 
-    private boolean matchesQuery(MentorProfile mentor, String query) {
-        if (query == null || query.isBlank()) {
-            return true;
-        }
+    public List<AvailabilitySlotResponse> getPublicSlots(Long mentorId) {
+        MentorProfile profile = mentorProfileRepository.findByIdAndIsPublicTrue(mentorId)
+                .orElseThrow(() -> new BadRequestException("Публичный профиль ментора не найден"));
 
-        String normalizedQuery = query.trim().toLowerCase(Locale.ROOT);
-
-        return contains(mentor.getFirstName(), normalizedQuery)
-                || contains(mentor.getLastName(), normalizedQuery)
-                || contains(mentor.getHeadline(), normalizedQuery)
-                || contains(mentor.getSpecialization(), normalizedQuery);
+        return mentorAvailabilitySlotRepository
+                .findByMentorIdAndIsActiveTrueAndStartAtAfterOrderByStartAtAsc(
+                        profile.getId(),
+                        LocalDateTime.now()
+                )
+                .stream()
+                .map(this::mapAvailabilitySlot)
+                .toList();
     }
 
-    private boolean matchesSpecialization(MentorProfile mentor, String specialization) {
-        if (specialization == null || specialization.isBlank()) {
-            return true;
-        }
-
-        return contains(mentor.getSpecialization(), specialization.trim().toLowerCase(Locale.ROOT));
+    private MentorDirectoryItemResponse mapDirectoryItem(MentorProfile profile) {
+        MentorDirectoryItemResponse response = new MentorDirectoryItemResponse();
+        response.setId(profile.getId());
+        response.setUserId(profile.getUser().getId());
+        response.setFirstName(profile.getFirstName());
+        response.setLastName(profile.getLastName());
+        response.setAvatarKey(profile.getAvatarKey());
+        response.setAvatarUrl(storageService.buildPublicUrl(profile.getAvatarKey()));
+        response.setHeadline(profile.getHeadline());
+        response.setSpecialization(profile.getSpecialization());
+        response.setYearsExperience(profile.getYearsExperience());
+        response.setLessonFormatOnline(profile.isLessonFormatOnline());
+        response.setLessonFormatOffline(profile.isLessonFormatOffline());
+        response.setLessonFormatHybrid(profile.isLessonFormatHybrid());
+        response.setCity(profile.getCity());
+        response.setPricePerHour(profile.getPricePerHour());
+        response.setAverageRating(profile.getAverageRating());
+        response.setLessonsCompleted(profile.getLessonsCompleted());
+        response.setVerified(profile.isVerified());
+        return response;
     }
 
-    private boolean matchesCity(MentorProfile mentor, String city) {
-        if (city == null || city.isBlank()) {
-            return true;
-        }
-
-        return contains(mentor.getCity(), city.trim().toLowerCase(Locale.ROOT));
+    private PublicMentorProfileResponse mapPublicProfile(MentorProfile profile) {
+        PublicMentorProfileResponse response = new PublicMentorProfileResponse();
+        response.setId(profile.getId());
+        response.setUserId(profile.getUser().getId());
+        response.setFirstName(profile.getFirstName());
+        response.setLastName(profile.getLastName());
+        response.setAvatarKey(profile.getAvatarKey());
+        response.setAvatarUrl(storageService.buildPublicUrl(profile.getAvatarKey()));
+        response.setHeadline(profile.getHeadline());
+        response.setBio(profile.getBio());
+        response.setSpecialization(profile.getSpecialization());
+        response.setYearsExperience(profile.getYearsExperience());
+        response.setLessonFormatOnline(profile.isLessonFormatOnline());
+        response.setLessonFormatOffline(profile.isLessonFormatOffline());
+        response.setLessonFormatHybrid(profile.isLessonFormatHybrid());
+        response.setCity(profile.getCity());
+        response.setAddressText(profile.getAddressText());
+        response.setMeetingLink(profile.getMeetingLink());
+        response.setPricePerHour(profile.getPricePerHour());
+        response.setAverageRating(profile.getAverageRating());
+        response.setLessonsCompleted(profile.getLessonsCompleted());
+        response.setVerified(profile.isVerified());
+        return response;
     }
 
-    private boolean matchesFormats(MentorProfile mentor, Boolean online, Boolean offline, Boolean hybrid) {
-        if (Boolean.TRUE.equals(online) && !mentor.isLessonFormatOnline()) {
-            return false;
-        }
-
-        if (Boolean.TRUE.equals(offline) && !mentor.isLessonFormatOffline()) {
-            return false;
-        }
-
-        if (Boolean.TRUE.equals(hybrid) && !mentor.isLessonFormatHybrid()) {
-            return false;
-        }
-
-        return true;
-    }
-
-    private boolean contains(String source, String query) {
-        return source != null && source.toLowerCase(Locale.ROOT).contains(query);
+    private AvailabilitySlotResponse mapAvailabilitySlot(MentorAvailabilitySlot slot) {
+        AvailabilitySlotResponse response = new AvailabilitySlotResponse();
+        response.setId(slot.getId());
+        response.setMentorId(slot.getMentor().getId());
+        response.setStartAt(slot.getStartAt());
+        response.setEndAt(slot.getEndAt());
+        response.setTimezone(slot.getTimezone());
+        response.setLessonFormat(slot.getLessonFormat());
+        response.setMeetingLink(slot.getMeetingLink());
+        response.setAddressText(slot.getAddressText());
+        response.setActive(slot.isActive());
+        return response;
     }
 
     private Sort resolveSort(String sortBy) {
-        if (sortBy == null || sortBy.isBlank()) {
-            return Sort.by(Sort.Direction.DESC, "averageRating")
+        if (!hasText(sortBy)) {
+            return Sort.by(Sort.Direction.DESC, "verified")
+                    .and(Sort.by(Sort.Direction.DESC, "averageRating"))
                     .and(Sort.by(Sort.Direction.DESC, "lessonsCompleted"));
         }
 
         return switch (sortBy) {
+            case "ratingDesc" -> Sort.by(Sort.Direction.DESC, "averageRating")
+                    .and(Sort.by(Sort.Direction.DESC, "lessonsCompleted"));
             case "priceAsc" -> Sort.by(Sort.Direction.ASC, "pricePerHour");
             case "priceDesc" -> Sort.by(Sort.Direction.DESC, "pricePerHour");
-            case "ratingDesc" -> Sort.by(Sort.Direction.DESC, "averageRating");
             case "experienceDesc" -> Sort.by(Sort.Direction.DESC, "yearsExperience");
-            default -> Sort.by(Sort.Direction.DESC, "averageRating")
+            default -> Sort.by(Sort.Direction.DESC, "verified")
+                    .and(Sort.by(Sort.Direction.DESC, "averageRating"))
                     .and(Sort.by(Sort.Direction.DESC, "lessonsCompleted"));
         };
     }
 
-    private MentorDirectoryItemResponse toDirectoryItem(MentorProfile mentor) {
-        MentorDirectoryItemResponse response = new MentorDirectoryItemResponse();
-        response.setId(mentor.getId());
-        response.setUserId(mentor.getUser().getId());
-        response.setFirstName(mentor.getFirstName());
-        response.setLastName(mentor.getLastName());
-        response.setAvatarKey(mentor.getAvatarKey());
-        response.setHeadline(mentor.getHeadline());
-        response.setSpecialization(mentor.getSpecialization());
-        response.setYearsExperience(mentor.getYearsExperience());
-        response.setLessonFormatOnline(mentor.isLessonFormatOnline());
-        response.setLessonFormatOffline(mentor.isLessonFormatOffline());
-        response.setLessonFormatHybrid(mentor.isLessonFormatHybrid());
-        response.setCity(mentor.getCity());
-        response.setPricePerHour(mentor.getPricePerHour());
-        response.setAverageRating(mentor.getAverageRating());
-        response.setLessonsCompleted(mentor.getLessonsCompleted());
-        response.setVerified(mentor.isVerified());
-        return response;
+    private boolean contains(String source, String query) {
+        return source != null && normalize(source).contains(query);
     }
 
-    private PublicMentorProfileResponse toPublicProfile(MentorProfile mentor) {
-        PublicMentorProfileResponse response = new PublicMentorProfileResponse();
-        response.setId(mentor.getId());
-        response.setUserId(mentor.getUser().getId());
-        response.setFirstName(mentor.getFirstName());
-        response.setLastName(mentor.getLastName());
-        response.setAvatarKey(mentor.getAvatarKey());
-        response.setHeadline(mentor.getHeadline());
-        response.setBio(mentor.getBio());
-        response.setSpecialization(mentor.getSpecialization());
-        response.setYearsExperience(mentor.getYearsExperience());
-        response.setLessonFormatOnline(mentor.isLessonFormatOnline());
-        response.setLessonFormatOffline(mentor.isLessonFormatOffline());
-        response.setLessonFormatHybrid(mentor.isLessonFormatHybrid());
-        response.setCity(mentor.getCity());
-        response.setAddressText(mentor.getAddressText());
-        response.setMeetingLink(mentor.getMeetingLink());
-        response.setPricePerHour(mentor.getPricePerHour());
-        response.setAverageRating(mentor.getAverageRating());
-        response.setLessonsCompleted(mentor.getLessonsCompleted());
-        response.setVerified(mentor.isVerified());
-        return response;
+    private String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
     }
 }

@@ -1,5 +1,6 @@
 package kg.kut.os.mentorhub.mentor.controller;
 
+import kg.kut.os.mentorhub.availability.dto.AvailabilitySlotResponse;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryFilter;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryItemResponse;
 import kg.kut.os.mentorhub.mentor.dto.PublicMentorProfileResponse;
@@ -44,5 +45,10 @@ public class PublicMentorDirectoryController {
     @GetMapping("/{mentorId}")
     public ResponseEntity<PublicMentorProfileResponse> getPublicProfile(@PathVariable Long mentorId) {
         return ResponseEntity.ok(publicMentorDirectoryService.getPublicProfile(mentorId));
+    }
+
+    @GetMapping("/{mentorId}/slots")
+    public ResponseEntity<List<AvailabilitySlotResponse>> getPublicSlots(@PathVariable Long mentorId) {
+        return ResponseEntity.ok(publicMentorDirectoryService.getPublicSlots(mentorId));
     }
 }

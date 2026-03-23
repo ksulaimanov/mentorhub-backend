@@ -9,6 +9,7 @@ public class PublicMentorProfileResponse {
     private String firstName;
     private String lastName;
     private String avatarKey;
+    private String avatarUrl;
     private String headline;
     private String bio;
     private String specialization;
@@ -45,6 +46,10 @@ public class PublicMentorProfileResponse {
 
     public String getAvatarKey() {
         return avatarKey;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 
     public String getHeadline() {
@@ -121,6 +126,10 @@ public class PublicMentorProfileResponse {
 
     public void setAvatarKey(String avatarKey) {
         this.avatarKey = avatarKey;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public void setHeadline(String headline) {

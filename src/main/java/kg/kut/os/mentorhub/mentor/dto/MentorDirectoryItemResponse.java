@@ -9,6 +9,7 @@ public class MentorDirectoryItemResponse {
     private String firstName;
     private String lastName;
     private String avatarKey;
+    private String avatarUrl;
     private String headline;
     private String specialization;
     private Integer yearsExperience;
@@ -42,6 +43,10 @@ public class MentorDirectoryItemResponse {
 
     public String getAvatarKey() {
         return avatarKey;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
     }
 
     public String getHeadline() {
@@ -106,6 +111,10 @@ public class MentorDirectoryItemResponse {
 
     public void setAvatarKey(String avatarKey) {
         this.avatarKey = avatarKey;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public void setHeadline(String headline) {
