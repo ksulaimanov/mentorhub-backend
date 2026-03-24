@@ -1,0 +1,15 @@
+target/
+.git
+.gitignore
+.classpath
+.project
+.settings
+*.iml
+.idea/
+.DS_Store
+node_modules/
+npm-debug.log
+.env
+.env.local
+uploads/
+

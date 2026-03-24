@@ -1,0 +1,74 @@
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/mentorhub-backend:latest'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/mentorhub-backend:$COMMIT_SHA'
+      - '.'
+
+  # Push Docker image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/mentorhub-backend'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/run'
+    args:
+      - 'deploy'
+      - 'mentorhub-backend'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/mentorhub-backend:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--timeout'
+      - '60'
+      - '--max-instances'
+      - '100'
+      - '--allow-unauthenticated'
+      - '--set-env-vars'
+      - |-
+        DB_HOST=cloudsql-db,
+        DB_PORT=5432,
+        DB_NAME=${_DB_NAME},
+        DB_USER=${_DB_USER},
+        DB_PASSWORD=${_DB_PASSWORD},
+        JWT_SECRET=${_JWT_SECRET},
+        MAIL_HOST=${_MAIL_HOST},
+        MAIL_PORT=${_MAIL_PORT},
+        MAIL_USERNAME=${_MAIL_USERNAME},
+        MAIL_PASSWORD=${_MAIL_PASSWORD},
+        MAIL_FROM=${_MAIL_FROM},
+        MAIL_ENABLED=${_MAIL_ENABLED},
+        CORS_ALLOWED_ORIGINS=${_CORS_ALLOWED_ORIGINS},
+        STORAGE_TYPE=${_STORAGE_TYPE},
+        GCS_BUCKET_NAME=${_GCS_BUCKET_NAME},
+        GCS_PUBLIC_BASE_URL=${_GCS_PUBLIC_BASE_URL},
+        SWAGGER_ENABLED=${_SWAGGER_ENABLED}
+      - '--add-cloudsql-instances'
+      - '${PROJECT_ID}:us-central1:${_CLOUD_SQL_INSTANCE}'
+
+images:
+  - 'gcr.io/$PROJECT_ID/mentorhub-backend'
+
+substitutions:
+  _DB_NAME: 'mentorhub'
+  _DB_USER: 'postgres'
+  _STORAGE_TYPE: 'gcs'
+  _MAIL_ENABLED: 'true'
+  _SWAGGER_ENABLED: 'false'
+  _CLOUD_SQL_INSTANCE: 'mentorhub-db-instance'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+

@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: mentorhub
+      POSTGRES_USER: mentorhub
+      POSTGRES_PASSWORD: mentorhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mentorhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mentorhub-backend:
+    build: .
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: mentorhub
+      DB_USER: mentorhub
+      DB_PASSWORD: mentorhub
+      JWT_SECRET: c3VwZXItc2VjdXJlLXRlc3Qta2V5LXN1cGVyLXNlY3VyZS10ZXN0LWtleQ==
+      MAIL_USERNAME: ${MAIL_USERNAME:-test@example.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-password}
+      MAIL_FROM: noreply@mentorhub.local
+      STORAGE_TYPE: local
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://localhost:5173
+      SWAGGER_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_data:
+
