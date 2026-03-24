@@ -79,4 +79,34 @@ public class MentorProfileService {
         response.setPublic(profile.isPublic());
         return response;
     }
+
+    public MentorProfileResponse getByEmail(String email) {
+        MentorProfile profile = mentorProfileRepository.findByUserEmail(email)
+                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден для: " + email));
+
+        return map(profile);
+    }
+
+    public MentorProfileResponse updateByEmail(String email, UpdateMentorProfileRequest request) {
+        MentorProfile profile = mentorProfileRepository.findByUserEmail(email)
+                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден"));
+
+        profile.setFirstName(request.getFirstName());
+        profile.setLastName(request.getLastName());
+        profile.setAvatarKey(request.getAvatarKey());
+        profile.setHeadline(request.getHeadline());
+        profile.setBio(request.getBio());
+        profile.setSpecialization(request.getSpecialization());
+        profile.setYearsExperience(request.getYearsExperience());
+        profile.setLessonFormatOnline(request.isLessonFormatOnline());
+        profile.setLessonFormatOffline(request.isLessonFormatOffline());
+        profile.setLessonFormatHybrid(request.isLessonFormatHybrid());
+        profile.setCity(request.getCity());
+        profile.setAddressText(request.getAddressText());
+        profile.setMeetingLink(request.getMeetingLink());
+        profile.setPricePerHour(request.getPricePerHour());
+        profile.setPublic(request.isPublic());
+
+        return map(profile);
+    }
 }

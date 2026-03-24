@@ -7,8 +7,10 @@ import kg.kut.os.mentorhub.mentor.service.MentorProfileService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
-@RequestMapping("/api/mentors")
+@RequestMapping("/api/mentor")
 public class MentorProfileController {
 
     private final MentorProfileService mentorProfileService;
@@ -17,16 +19,18 @@ public class MentorProfileController {
         this.mentorProfileService = mentorProfileService;
     }
 
-    @GetMapping("/{userId}/profile")
-    public ResponseEntity<MentorProfileResponse> getProfile(@PathVariable Long userId) {
-        return ResponseEntity.ok(mentorProfileService.getByUserId(userId));
+    @GetMapping("/profile")
+    public ResponseEntity<MentorProfileResponse> getMyProfile(Principal principal) {
+        String email = principal.getName();
+        return ResponseEntity.ok(mentorProfileService.getByEmail(email));
     }
 
-    @PutMapping("/{userId}/profile")
+    @PutMapping("/profile")
     public ResponseEntity<MentorProfileResponse> updateProfile(
-            @PathVariable Long userId,
+            Principal principal,
             @Valid @RequestBody UpdateMentorProfileRequest request
     ) {
-        return ResponseEntity.ok(mentorProfileService.update(userId, request));
+        String email = principal.getName();
+        return ResponseEntity.ok(mentorProfileService.updateByEmail(email, request));
     }
 }

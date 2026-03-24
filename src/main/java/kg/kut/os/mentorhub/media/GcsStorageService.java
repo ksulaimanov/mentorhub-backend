@@ -1,24 +1,26 @@
 package kg.kut.os.mentorhub.media;
 
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
-import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.*;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
-@ConditionalOnProperty(name = "app.storage.type", havingValue = "local", matchIfMissing = true)
-public class LocalStorageService implements StorageService {
+@ConditionalOnProperty(name = "app.storage.type", havingValue = "gcs")
+public class GcsStorageService implements StorageService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
             "image/jpeg",
@@ -28,27 +30,21 @@ public class LocalStorageService implements StorageService {
 
     private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png", "webp");
 
-    private final Path uploadRoot;
+    private final Storage storage;
+    private final String bucketName;
     private final String publicBaseUrl;
     private final long avatarMaxSizeBytes;
 
-    public LocalStorageService(
-            @Value("${app.storage.local.upload-dir}") String uploadDir,
-            @Value("${app.storage.local.public-base-url}") String publicBaseUrl,
-            @Value("${app.storage.local.avatar-max-size-bytes}") long avatarMaxSizeBytes
+    public GcsStorageService(
+            Storage storage,
+            @Value("${app.storage.gcs.bucket-name}") String bucketName,
+            @Value("${app.storage.gcs.public-base-url}") String publicBaseUrl,
+            @Value("${app.storage.gcs.avatar-max-size-bytes}") long avatarMaxSizeBytes
     ) {
-        this.uploadRoot = Paths.get(uploadDir).toAbsolutePath().normalize();
+        this.storage = storage;
+        this.bucketName = bucketName;
         this.publicBaseUrl = publicBaseUrl;
         this.avatarMaxSizeBytes = avatarMaxSizeBytes;
-    }
-
-    @PostConstruct
-    public void init() {
-        try {
-            Files.createDirectories(uploadRoot.resolve("avatars"));
-        } catch (IOException e) {
-            throw new IllegalStateException("Не удалось создать директорию для загрузок", e);
-        }
     }
 
     @Override
@@ -59,14 +55,12 @@ public class LocalStorageService implements StorageService {
         String filename = UUID.randomUUID() + "." + extension;
         String key = "avatars/users/" + userId + "/" + filename;
 
-        Path targetPath = uploadRoot.resolve(key).normalize();
+        try (InputStream inputStream = file.getInputStream()) {
+            BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(bucketName, key))
+                    .setContentType(file.getContentType())
+                    .build();
 
-        try {
-            Files.createDirectories(targetPath.getParent());
-
-            try (InputStream inputStream = file.getInputStream()) {
-                Files.copy(inputStream, targetPath, StandardCopyOption.REPLACE_EXISTING);
-            }
+            storage.create(blobInfo, inputStream.readAllBytes());
 
             return key;
         } catch (IOException e) {
@@ -83,11 +77,10 @@ public class LocalStorageService implements StorageService {
             return;
         }
 
-        Path targetPath = uploadRoot.resolve(key).normalize();
-
         try {
-            Files.deleteIfExists(targetPath);
-        } catch (IOException e) {
+            BlobId blobId = BlobId.of(bucketName, key);
+            storage.delete(blobId);
+        } catch (Exception e) {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Не удалось удалить файл"
@@ -101,7 +94,7 @@ public class LocalStorageService implements StorageService {
             return null;
         }
 
-        return publicBaseUrl + "/uploads/" + key;
+        return publicBaseUrl + "/" + key;
     }
 
     private void validateAvatar(MultipartFile file) {
@@ -142,3 +135,4 @@ public class LocalStorageService implements StorageService {
         return normalized;
     }
 }
+

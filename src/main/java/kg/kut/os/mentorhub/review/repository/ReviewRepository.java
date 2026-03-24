@@ -21,4 +21,8 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     long countByMentorId(Long mentorId);
 
     Optional<Review> findByIdAndStudentUserId(Long reviewId, Long userId);
+
+    /** Global average rating across all mentors — for admin dashboard. */
+    @Query("select avg(r.rating) from Review r")
+    BigDecimal findGlobalAverageRating();
 }

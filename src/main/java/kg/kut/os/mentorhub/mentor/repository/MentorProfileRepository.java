@@ -11,4 +11,5 @@ public interface MentorProfileRepository extends JpaRepository<MentorProfile, Lo
     Optional<MentorProfile> findByUserId(Long userId);
     Optional<MentorProfile> findByIdAndIsPublicTrue(Long id);
     List<MentorProfile> findAllByIsPublicTrue(Sort sort);
+    Optional<MentorProfile> findByUserEmail(String email);
 }
