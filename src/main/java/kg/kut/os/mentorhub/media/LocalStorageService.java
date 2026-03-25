@@ -17,7 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Service
-@ConditionalOnProperty(name = "app.storage.type", havingValue = "local", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.storage.type", havingValue = "local")
 public class LocalStorageService implements StorageService {
 
     private static final Set<String> ALLOWED_CONTENT_TYPES = Set.of(
