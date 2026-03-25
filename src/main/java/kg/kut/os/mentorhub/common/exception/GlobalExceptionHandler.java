@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import kg.kut.os.mentorhub.common.dto.ApiErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponseException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -30,12 +31,7 @@ public class GlobalExceptionHandler {
             fieldErrors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
-        return build(
-                HttpStatus.BAD_REQUEST,
-                "Некорректные данные запроса",
-                request,
-                fieldErrors
-        );
+        return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Некорректные данные запроса", request, fieldErrors);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
@@ -43,12 +39,24 @@ public class GlobalExceptionHandler {
             MaxUploadSizeExceededException ex,
             HttpServletRequest request
     ) {
-        return build(
-                HttpStatus.BAD_REQUEST,
-                "Файл слишком большой. Максимальный размер — 10 MB",
-                request,
-                null
-        );
+        return build(HttpStatus.BAD_REQUEST, "FILE_TOO_LARGE",
+                "Файл слишком большой. Максимальный размер — 10 MB", request, null);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnauthorized(
+            UnauthorizedException ex,
+            HttpServletRequest request
+    ) {
+        return build(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", ex.getMessage(), request, null);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorResponse> handleAccessDenied(
+            AccessDeniedException ex,
+            HttpServletRequest request
+    ) {
+        return build(HttpStatus.FORBIDDEN, "FORBIDDEN", "Доступ запрещён", request, null);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -58,8 +66,7 @@ public class GlobalExceptionHandler {
     ) {
         HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
         String message = ex.getReason() != null ? ex.getReason() : "Ошибка запроса";
-
-        return build(status, message, request, null);
+        return build(status, "REQUEST_ERROR", message, request, null);
     }
 
     @ExceptionHandler(BadRequestException.class)
@@ -67,7 +74,7 @@ public class GlobalExceptionHandler {
             BadRequestException ex,
             HttpServletRequest request
     ) {
-        return build(HttpStatus.BAD_REQUEST, ex.getMessage(), request, null);
+        return build(HttpStatus.BAD_REQUEST, "BAD_REQUEST", ex.getMessage(), request, null);
     }
 
     @ExceptionHandler(ErrorResponseException.class)
@@ -79,8 +86,7 @@ public class GlobalExceptionHandler {
         String message = ex.getBody() != null && ex.getBody().getDetail() != null
                 ? ex.getBody().getDetail()
                 : "Ошибка запроса";
-
-        return build(status, message, request, null);
+        return build(status, "REQUEST_ERROR", message, request, null);
     }
 
     @ExceptionHandler(Exception.class)
@@ -89,17 +95,13 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         ex.printStackTrace();
-
-        return build(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "Внутренняя ошибка сервера",
-                request,
-                null
-        );
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR",
+                "Внутренняя ошибка сервера", request, null);
     }
 
     private ResponseEntity<ApiErrorResponse> build(
             HttpStatus status,
+            String code,
             String message,
             HttpServletRequest request,
             Map<String, String> fieldErrors
@@ -108,6 +110,7 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now(),
                 status.value(),
                 status.getReasonPhrase(),
+                code,
                 message,
                 request.getRequestURI(),
                 fieldErrors

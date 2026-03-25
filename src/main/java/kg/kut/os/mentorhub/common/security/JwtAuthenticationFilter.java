@@ -2,7 +2,8 @@ package kg.kut.os.mentorhub.common.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import kg.kut.os.mentorhub.auth.service.JwtService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,6 +24,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public JwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService customUserDetailsService) {
         this.jwtService = jwtService;
         this.customUserDetailsService = customUserDetailsService;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String method = request.getMethod();
+        String path = request.getServletPath();
+
+        return "OPTIONS".equalsIgnoreCase(method)
+                || path.startsWith("/api/auth/")
+                || path.startsWith("/api/public/")
+                || path.startsWith("/swagger-ui/")
+                || path.startsWith("/v3/api-docs/")
+                || path.startsWith("/api-docs/")
+                || path.startsWith("/actuator/health");
     }
 
     @Override
@@ -54,7 +69,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 userDetails.getAuthorities()
                         );
 
-                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                authenticationToken.setDetails(
+                        new WebAuthenticationDetailsSource().buildDetails(request)
+                );
+
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
             }
         } catch (Exception ignored) {

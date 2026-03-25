@@ -8,6 +8,7 @@ public class ApiErrorResponse {
     private LocalDateTime timestamp;
     private int status;
     private String error;
+    private String code;
     private String message;
     private String path;
     private Map<String, String> fieldErrors;
@@ -19,6 +20,7 @@ public class ApiErrorResponse {
             LocalDateTime timestamp,
             int status,
             String error,
+            String code,
             String message,
             String path,
             Map<String, String> fieldErrors
@@ -26,6 +28,7 @@ public class ApiErrorResponse {
         this.timestamp = timestamp;
         this.status = status;
         this.error = error;
+        this.code = code;
         this.message = message;
         this.path = path;
         this.fieldErrors = fieldErrors;
@@ -41,6 +44,10 @@ public class ApiErrorResponse {
 
     public String getError() {
         return error;
+    }
+
+    public String getCode() {
+        return code;
     }
 
     public String getMessage() {
@@ -65,6 +72,10 @@ public class ApiErrorResponse {
 
     public void setError(String error) {
         this.error = error;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public void setMessage(String message) {
