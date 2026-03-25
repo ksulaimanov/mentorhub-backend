@@ -45,7 +45,7 @@ public class BookingService {
         StudentProfile student = studentProfileRepository.findByUserId(studentUserId)
                 .orElseThrow(() -> new BadRequestException("Профиль ученика не найден"));
 
-        MentorAvailabilitySlot slot = slotRepository.findById(request.getAvailabilitySlotId())
+        MentorAvailabilitySlot slot = slotRepository.findByIdForUpdate(request.getAvailabilitySlotId())
                 .orElseThrow(() -> new BadRequestException("Слот не найден"));
 
         if (!slot.isActive()) {

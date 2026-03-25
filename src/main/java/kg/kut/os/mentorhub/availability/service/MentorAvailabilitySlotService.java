@@ -107,7 +107,8 @@ public class MentorAvailabilitySlotService {
     }
 
     public List<AvailabilitySlotResponse> getPublicSlots(Long mentorProfileId) {
-        return slotRepository.findAllByMentorIdAndIsActiveTrueOrderByStartAtAsc(mentorProfileId)
+        return slotRepository.findByMentorIdAndIsActiveTrueAndStartAtAfterOrderByStartAtAsc(
+                        mentorProfileId, LocalDateTime.now())
                 .stream()
                 .map(this::map)
                 .toList();

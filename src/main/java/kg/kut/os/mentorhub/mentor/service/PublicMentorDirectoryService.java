@@ -3,6 +3,8 @@ package kg.kut.os.mentorhub.mentor.service;
 import kg.kut.os.mentorhub.availability.dto.AvailabilitySlotResponse;
 import kg.kut.os.mentorhub.availability.entity.MentorAvailabilitySlot;
 import kg.kut.os.mentorhub.availability.repository.MentorAvailabilitySlotRepository;
+import kg.kut.os.mentorhub.booking.entity.BookingStatus;
+import kg.kut.os.mentorhub.booking.repository.BookingRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
 import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryFilter;
@@ -25,15 +27,18 @@ public class PublicMentorDirectoryService {
 
     private final MentorProfileRepository mentorProfileRepository;
     private final MentorAvailabilitySlotRepository mentorAvailabilitySlotRepository;
+    private final BookingRepository bookingRepository;
     private final StorageService storageService;
 
     public PublicMentorDirectoryService(
             MentorProfileRepository mentorProfileRepository,
             MentorAvailabilitySlotRepository mentorAvailabilitySlotRepository,
+            BookingRepository bookingRepository,
             StorageService storageService
     ) {
         this.mentorProfileRepository = mentorProfileRepository;
         this.mentorAvailabilitySlotRepository = mentorAvailabilitySlotRepository;
+        this.bookingRepository = bookingRepository;
         this.storageService = storageService;
     }
 
@@ -153,6 +158,13 @@ public class PublicMentorDirectoryService {
     }
 
     private AvailabilitySlotResponse mapAvailabilitySlot(MentorAvailabilitySlot slot) {
+        long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
+                slot.getId(),
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
+        );
+        int capacity = slot.getCapacity();
+        int available = Math.max(capacity - (int) bookedCount, 0);
+
         AvailabilitySlotResponse response = new AvailabilitySlotResponse();
         response.setId(slot.getId());
         response.setMentorId(slot.getMentor().getId());
@@ -163,6 +175,9 @@ public class PublicMentorDirectoryService {
         response.setMeetingLink(slot.getMeetingLink());
         response.setAddressText(slot.getAddressText());
         response.setActive(slot.isActive());
+        response.setCapacity(capacity);
+        response.setBookedCount((int) bookedCount);
+        response.setAvailableSeats(available);
         return response;
     }
 
