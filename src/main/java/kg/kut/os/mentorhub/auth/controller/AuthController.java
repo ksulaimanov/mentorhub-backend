@@ -4,8 +4,10 @@ import jakarta.validation.Valid;
 import kg.kut.os.mentorhub.auth.dto.*;
 import kg.kut.os.mentorhub.auth.service.AuthService;
 import kg.kut.os.mentorhub.common.dto.MessageResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -24,9 +26,11 @@ public class AuthController {
     }
 
     @PostMapping("/register/mentor")
-    public ResponseEntity<MessageResponse> registerMentor(@Valid @RequestBody RegisterMentorRequest request) {
-        authService.registerMentor(request);
-        return ResponseEntity.ok(new MessageResponse("Код подтверждения отправлен на email"));
+    public ResponseEntity<?> registerMentor(@Valid @RequestBody RegisterMentorRequest request) {
+        throw new ResponseStatusException(
+                HttpStatus.GONE,
+                "Регистрация менторов закрыта. Пожалуйста, зарегистрируйтесь как студент и подайте заявку на менторство через /api/student/mentor-application"
+        );
     }
 
     @PostMapping("/verify-email")

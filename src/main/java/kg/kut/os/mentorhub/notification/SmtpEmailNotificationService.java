@@ -101,4 +101,78 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
             MentorHub
             """.formatted(code);
     }
+
+    @Override
+    public void sendApplicationApproved(String toEmail, String userName) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("Ваша заявка на менторство одобрена!");
+        message.setText(buildApplicationApprovedText(userName));
+
+        try {
+            mailSender.send(message);
+            log.info("Application approved email sent to {}", toEmail);
+        } catch (MailException ex) {
+            log.error("Failed to send application approved email to {}", toEmail, ex);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Не удалось отправить письмо об одобрении заявки"
+            );
+        }
+    }
+
+    private String buildApplicationApprovedText(String userName) {
+        return """
+            Здравствуйте, %s!
+
+            Отлично новости! Ваша заявка на менторство в MentorHub одобрена!
+
+            Вы теперь полноценный ментор на платформе. Можно приступать к:
+            - Заполнению профиля ментора
+            - Установке доступных слотов
+            - Публикации вашего профиля
+
+            Добро пожаловать в команду менторов MentorHub!
+
+            С уважением,
+            MentorHub
+            """.formatted(userName);
+    }
+
+    @Override
+    public void sendApplicationRejected(String toEmail, String userName, String rejectionReason) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(toEmail);
+        message.setSubject("Результат рассмотрения заявки на менторство");
+        message.setText(buildApplicationRejectedText(userName, rejectionReason));
+
+        try {
+            mailSender.send(message);
+            log.info("Application rejected email sent to {}", toEmail);
+        } catch (MailException ex) {
+            log.error("Failed to send application rejected email to {}", toEmail, ex);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Не удалось отправить письмо об отклонении заявки"
+            );
+        }
+    }
+
+    private String buildApplicationRejectedText(String userName, String rejectionReason) {
+        return """
+            Здравствуйте, %s!
+
+            Спасибо за интерес к менторству в MentorHub. К сожалению, ваша заявка не была одобрена.
+
+            Причина отклонения:
+            %s
+
+            Вы можете подать новую заявку позже или связаться с нашей командой для получения дополнительной информации.
+
+            С уважением,
+            MentorHub
+            """.formatted(userName, rejectionReason);
+    }
 }
