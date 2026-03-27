@@ -20,6 +20,8 @@ public class AdminApplicationDetailView {
     private String rejectionReason;
     private Long reviewedByUserId;
     private String reviewedByEmail;
+    private LocalDateTime reviewedAt;
+    private String adminComment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -69,6 +71,14 @@ public class AdminApplicationDetailView {
 
     public String getReviewedByEmail() {
         return reviewedByEmail;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public String getAdminComment() {
+        return adminComment;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -122,6 +132,14 @@ public class AdminApplicationDetailView {
 
     public void setReviewedByEmail(String reviewedByEmail) {
         this.reviewedByEmail = reviewedByEmail;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public void setAdminComment(String adminComment) {
+        this.adminComment = adminComment;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

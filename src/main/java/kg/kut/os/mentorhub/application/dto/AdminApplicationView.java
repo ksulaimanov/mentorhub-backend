@@ -16,13 +16,15 @@ public class AdminApplicationView {
     private MentorApplicationStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime reviewedAt;
 
     public AdminApplicationView() {
     }
 
     public AdminApplicationView(Long applicationId, Long applicantUserId, String applicantEmail,
                               String applicantName, MentorApplicationStatus status,
-                              LocalDateTime createdAt, LocalDateTime updatedAt) {
+                              LocalDateTime createdAt, LocalDateTime updatedAt,
+                              LocalDateTime reviewedAt) {
         this.applicationId = applicationId;
         this.applicantUserId = applicantUserId;
         this.applicantEmail = applicantEmail;
@@ -30,6 +32,7 @@ public class AdminApplicationView {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.reviewedAt = reviewedAt;
     }
 
     // Getters
@@ -61,6 +64,10 @@ public class AdminApplicationView {
         return updatedAt;
     }
 
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
     // Setters
     public void setApplicationId(Long applicationId) {
         this.applicationId = applicationId;
@@ -88,6 +95,10 @@ public class AdminApplicationView {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
     }
 }
 

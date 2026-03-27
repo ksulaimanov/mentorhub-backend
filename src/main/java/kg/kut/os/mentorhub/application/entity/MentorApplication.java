@@ -37,11 +37,20 @@ public class MentorApplication {
     @Column(columnDefinition = "text")
     private String rejectionReason;
 
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "admin_comment", columnDefinition = "text")
+    private String adminComment;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
 
     @PrePersist
     public void prePersist() {
@@ -99,6 +108,18 @@ public class MentorApplication {
         return updatedAt;
     }
 
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public String getAdminComment() {
+        return adminComment;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
     // Setters
     public void setApplicantUser(User applicantUser) {
         this.applicantUser = applicantUser;
@@ -126,6 +147,14 @@ public class MentorApplication {
 
     public void setRejectionReason(String rejectionReason) {
         this.rejectionReason = rejectionReason;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public void setAdminComment(String adminComment) {
+        this.adminComment = adminComment;
     }
 }
 
