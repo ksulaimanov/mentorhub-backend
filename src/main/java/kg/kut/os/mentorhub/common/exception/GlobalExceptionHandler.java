@@ -2,8 +2,10 @@ package kg.kut.os.mentorhub.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 import kg.kut.os.mentorhub.common.dto.ApiErrorResponse;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.ErrorResponseException;
@@ -87,6 +89,25 @@ public class GlobalExceptionHandler {
                 ? ex.getBody().getDetail()
                 : "Ошибка запроса";
         return build(status, "REQUEST_ERROR", message, request, null);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ApiErrorResponse> handleOptimisticLock(
+            ObjectOptimisticLockingFailureException ex,
+            HttpServletRequest request
+    ) {
+        return build(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION",
+                "Заявка была изменена другим администратором. Обновите страницу и попробуйте снова.",
+                request, null);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request
+    ) {
+        return build(HttpStatus.CONFLICT, "DATA_CONFLICT",
+                "Конфликт данных. Возможно, запись уже существует.", request, null);
     }
 
     @ExceptionHandler(Exception.class)

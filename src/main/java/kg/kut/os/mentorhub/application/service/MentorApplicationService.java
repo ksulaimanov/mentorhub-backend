@@ -20,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 
 @Service
@@ -127,18 +128,20 @@ public class MentorApplicationService {
      * Одобрить заявку на менторство (ATOMICALLY):
      * 1. Обновить статус заявки на APPROVED
      * 2. Добавить роль ROLE_MENTOR пользователю
-     * 3. Создать MentorProfile с verified=true, isPublic=false
+     * 3. Создать MentorProfile с verified=true, isPublic=false (или обновить существующий)
      *
      * @param applicationId ID заявки
      * @param adminUserId ID администратора, одобряющего заявку
+     * @param adminComment Необязательный комментарий администратора
+     * @return true если заявка была одобрена, false если уже была одобрена ранее (идемпотентность)
      */
-    public void approveApplication(Long applicationId, Long adminUserId) {
+    public boolean approveApplication(Long applicationId, Long adminUserId, String adminComment) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Заявка не найдена"));
 
         // Если уже одобрена, это OK (идемпотентность)
         if (application.getStatus() == MentorApplicationStatus.APPROVED) {
-            return;
+            return false;
         }
 
         if (application.getStatus() != MentorApplicationStatus.PENDING) {
@@ -166,6 +169,8 @@ public class MentorApplicationService {
         // 1. Обновить заявку
         application.setStatus(MentorApplicationStatus.APPROVED);
         application.setReviewedByUser(adminUser);
+        application.setReviewedAt(LocalDateTime.now());
+        application.setAdminComment(adminComment);
         mentorApplicationRepository.save(application);
 
         // 2. Добавить роль ROLE_MENTOR
@@ -175,18 +180,28 @@ public class MentorApplicationService {
         applicantUser.getRoles().add(mentorRole);
         userRepository.save(applicantUser);
 
-        // 3. Создать MentorProfile
-        MentorProfile mentorProfile = new MentorProfile();
-        mentorProfile.setUser(applicantUser);
-        mentorProfile.setVerified(true);
-        mentorProfile.setPublic(false); // По умолчанию не публичный, ментор может включить позже
-        mentorProfile.setLessonFormatOnline(false);
-        mentorProfile.setLessonFormatOffline(false);
-        mentorProfile.setLessonFormatHybrid(false);
-        mentorProfileRepository.save(mentorProfile);
+        // 3. Создать MentorProfile (или обновить существующий)
+        MentorProfile existingProfile = mentorProfileRepository.findByUserId(applicantUser.getId())
+                .orElse(null);
+
+        if (existingProfile != null) {
+            existingProfile.setVerified(true);
+            mentorProfileRepository.save(existingProfile);
+        } else {
+            MentorProfile mentorProfile = new MentorProfile();
+            mentorProfile.setUser(applicantUser);
+            mentorProfile.setVerified(true);
+            mentorProfile.setPublic(false); // По умолчанию не публичный, ментор может включить позже
+            mentorProfile.setLessonFormatOnline(false);
+            mentorProfile.setLessonFormatOffline(false);
+            mentorProfile.setLessonFormatHybrid(false);
+            mentorProfileRepository.save(mentorProfile);
+        }
 
         // 4. Отправить email ментору
         emailNotificationService.sendApplicationApproved(applicantUser.getEmail(), applicantUser.getEmail());
+
+        return true;
     }
 
     /**
@@ -195,14 +210,15 @@ public class MentorApplicationService {
      * @param applicationId ID заявки
      * @param rejectionReason Причина отклонения
      * @param adminUserId ID администратора, отклоняющего заявку
+     * @return true если заявка была отклонена, false если уже была отклонена ранее (идемпотентность)
      */
-    public void rejectApplication(Long applicationId, String rejectionReason, Long adminUserId) {
+    public boolean rejectApplication(Long applicationId, String rejectionReason, Long adminUserId) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Заявка не найдена"));
 
         // Если уже отклонена, это OK (идемпотентность)
         if (application.getStatus() == MentorApplicationStatus.REJECTED) {
-            return;
+            return false;
         }
 
         if (application.getStatus() != MentorApplicationStatus.PENDING) {
@@ -218,6 +234,7 @@ public class MentorApplicationService {
         application.setStatus(MentorApplicationStatus.REJECTED);
         application.setRejectionReason(rejectionReason);
         application.setReviewedByUser(adminUser);
+        application.setReviewedAt(LocalDateTime.now());
         mentorApplicationRepository.save(application);
 
         // Отправить email заявителю
@@ -227,6 +244,8 @@ public class MentorApplicationService {
                 applicantUser.getEmail(),
                 rejectionReason
         );
+
+        return true;
     }
 
 
@@ -251,7 +270,8 @@ public class MentorApplicationService {
                 app.getApplicantUser().getEmail(),
                 app.getStatus(),
                 app.getCreatedAt(),
-                app.getUpdatedAt()
+                app.getUpdatedAt(),
+                app.getReviewedAt()
         );
     }
 
@@ -266,12 +286,14 @@ public class MentorApplicationService {
         view.setExperienceSummary(app.getExperienceSummary());
         view.setPortfolioUrl(app.getPortfolioUrl());
         view.setRejectionReason(app.getRejectionReason());
+        view.setAdminComment(app.getAdminComment());
 
         if (app.getReviewedByUser() != null) {
             view.setReviewedByUserId(app.getReviewedByUser().getId());
             view.setReviewedByEmail(app.getReviewedByUser().getEmail());
         }
 
+        view.setReviewedAt(app.getReviewedAt());
         view.setCreatedAt(app.getCreatedAt());
         view.setUpdatedAt(app.getUpdatedAt());
         return view;

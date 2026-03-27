@@ -3,9 +3,11 @@ package kg.kut.os.mentorhub.application.controller;
 import jakarta.validation.Valid;
 import kg.kut.os.mentorhub.application.dto.AdminApplicationDetailView;
 import kg.kut.os.mentorhub.application.dto.AdminApplicationView;
+import kg.kut.os.mentorhub.application.dto.ApproveApplicationRequest;
 import kg.kut.os.mentorhub.application.dto.RejectApplicationRequest;
 import kg.kut.os.mentorhub.application.entity.MentorApplicationStatus;
 import kg.kut.os.mentorhub.application.service.MentorApplicationService;
+import kg.kut.os.mentorhub.auth.entity.User;
 import kg.kut.os.mentorhub.common.dto.MessageResponse;
 import kg.kut.os.mentorhub.common.security.CurrentUser;
 import org.springframework.data.domain.Page;
@@ -29,6 +31,7 @@ public class AdminApplicationController {
      * Получить список всех заявок на менторство
      * GET /api/admin/mentor-applications?status=PENDING&page=0&size=20
      */
+    @GetMapping
     public ResponseEntity<Page<AdminApplicationView>> listApplications(
             @RequestParam(required = false) MentorApplicationStatus status,
             Pageable pageable
@@ -62,10 +65,15 @@ public class AdminApplicationController {
     @PostMapping("/{id}/approve")
     public ResponseEntity<MessageResponse> approveApplication(
             @PathVariable Long id,
-            @CurrentUser Long adminUserId
+            @Valid @RequestBody(required = false) ApproveApplicationRequest request,
+            @CurrentUser User currentAdmin
     ) {
-        mentorApplicationService.approveApplication(id, adminUserId);
-        return ResponseEntity.ok(new MessageResponse("Заявка одобрена. Пользователю выдана роль ROLE_MENTOR"));
+        String adminComment = request != null ? request.getAdminComment() : null;
+        boolean applied = mentorApplicationService.approveApplication(id, currentAdmin.getId(), adminComment);
+        String message = applied
+                ? "Заявка одобрена. Пользователю выдана роль ROLE_MENTOR"
+                : "Заявка уже была одобрена ранее";
+        return ResponseEntity.ok(new MessageResponse(message));
     }
 
     /**
@@ -76,10 +84,13 @@ public class AdminApplicationController {
     public ResponseEntity<MessageResponse> rejectApplication(
             @PathVariable Long id,
             @Valid @RequestBody RejectApplicationRequest request,
-            @CurrentUser Long adminUserId
+            @CurrentUser User currentAdmin
     ) {
-        mentorApplicationService.rejectApplication(id, request.getRejectionReason(), adminUserId);
-        return ResponseEntity.ok(new MessageResponse("Заявка отклонена. Уведомление отправлено пользователю"));
+        boolean applied = mentorApplicationService.rejectApplication(id, request.getRejectionReason(), currentAdmin.getId());
+        String message = applied
+                ? "Заявка отклонена. Уведомление отправлено пользователю"
+                : "Заявка уже была отклонена ранее";
+        return ResponseEntity.ok(new MessageResponse(message));
     }
 }
 
