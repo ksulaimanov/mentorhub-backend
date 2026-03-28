@@ -199,7 +199,7 @@ public class MentorApplicationService {
         }
 
         // 4. Отправить email ментору
-        emailNotificationService.sendApplicationApproved(applicantUser.getEmail(), applicantUser.getEmail());
+        emailNotificationService.sendApplicationApproved(applicantUser.getEmail(), applicantUser.getEmail(), applicantUser.getPreferredLocale());
 
         return true;
     }
@@ -242,7 +242,8 @@ public class MentorApplicationService {
         emailNotificationService.sendApplicationRejected(
                 applicantUser.getEmail(),
                 applicantUser.getEmail(),
-                rejectionReason
+                rejectionReason,
+                applicantUser.getPreferredLocale()
         );
 
         return true;
