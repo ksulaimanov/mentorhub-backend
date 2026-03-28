@@ -72,11 +72,12 @@ public class AuthService {
     }
 
     public void registerStudent(RegisterStudentRequest request) {
-        register(request.getEmail(), request.getPassword(), RoleCode.ROLE_STUDENT);
+        String locale = request.getPreferredLocale() != null ? request.getPreferredLocale() : "ru";
+        register(request.getEmail(), request.getPassword(), RoleCode.ROLE_STUDENT, locale);
     }
 
     public void registerMentor(RegisterMentorRequest request) {
-        register(request.getEmail(), request.getPassword(), RoleCode.ROLE_MENTOR);
+        register(request.getEmail(), request.getPassword(), RoleCode.ROLE_MENTOR, "ru");
     }
 
     public void verifyEmail(VerifyEmailRequest request) {
@@ -154,7 +155,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Неверный email или пароль");
         }
 
-        if (!user.isEmailVerified() || user.getStatus() == UserStatus.PENDING_VERIFICATION) {
+        if (!user.isEmailVerified() || user.getStatus() == UserStatus.PENDING_EMAIL_VERIFICATION) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ещё не подтверждён");
         }
 
@@ -195,11 +196,19 @@ public class AuthService {
         });
     }
 
-    private void register(String email, String rawPassword, RoleCode roleCode) {
+    private void register(String email, String rawPassword, RoleCode roleCode, String locale) {
         String normalizedEmail = normalizeEmail(email);
 
-        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email уже зарегистрирован");
+        User existingUser = userRepository.findByEmailIgnoreCase(normalizedEmail).orElse(null);
+        if (existingUser != null) {
+            if (existingUser.getStatus() == UserStatus.PENDING_EMAIL_VERIFICATION
+                    && existingUser.getCreatedAt().plusMinutes(verificationCodeExpirationMinutes).isBefore(LocalDateTime.now())) {
+                // Stale unverified registration — treat email as new
+                userRepository.delete(existingUser);
+                userRepository.flush();
+            } else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email уже зарегистрирован");
+            }
         }
 
         Role role = roleRepository.findByCode(roleCode)
@@ -208,8 +217,9 @@ public class AuthService {
         User user = new User();
         user.setEmail(normalizedEmail);
         user.setPasswordHash(passwordEncoder.encode(rawPassword));
-        user.setStatus(UserStatus.PENDING_VERIFICATION);
+        user.setStatus(UserStatus.PENDING_EMAIL_VERIFICATION);
         user.setEmailVerified(false);
+        user.setPreferredLocale(locale);
         user.setRoles(Set.of(role));
 
         User savedUser = userRepository.save(user);
@@ -245,7 +255,7 @@ public class AuthService {
         verificationCode.setAttempts(0);
 
         emailVerificationCodeRepository.save(verificationCode);
-        emailNotificationService.sendEmailVerificationCode(user.getEmail(), code);
+        emailNotificationService.sendEmailVerificationCode(user.getEmail(), code, user.getPreferredLocale());
     }
 
     private RefreshToken createRefreshToken(User user) {

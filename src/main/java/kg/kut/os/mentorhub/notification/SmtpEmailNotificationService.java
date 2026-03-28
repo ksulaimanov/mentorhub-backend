@@ -29,16 +29,18 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
     }
 
     @Override
-    public void sendEmailVerificationCode(String toEmail, String code) {
+
+    public void sendEmailVerificationCode(String toEmail, String code, String locale) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        message.setSubject("Подтверждение email в MentorHub");
-        message.setText(buildVerificationText(code));
+        boolean isEnglish = "en".equalsIgnoreCase(locale);
+        message.setSubject(isEnglish ? "Email verification for MentorHub" : "Подтверждение email в MentorHub");
+        message.setText(isEnglish ? buildVerificationTextEn(code) : buildVerificationTextRu(code));
 
         try {
             mailSender.send(message);
-            log.info("Verification email sent to {}", toEmail);
+            log.info("Verification email sent to {} (locale={})", toEmail, locale);
         } catch (MailException ex) {
             log.error("Failed to send verification email to {}", toEmail, ex);
             throw new ResponseStatusException(
@@ -48,7 +50,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         }
     }
 
-    private String buildVerificationText(String code) {
+    private String buildVerificationTextRu(String code) {
         return """
                 Здравствуйте!
 
@@ -61,6 +63,23 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
                 Если вы не регистрировались в MentorHub, просто проигнорируйте это письмо.
 
                 С уважением,
+                MentorHub
+                """.formatted(code);
+    }
+
+    private String buildVerificationTextEn(String code) {
+        return """
+                Hello!
+
+                Your verification code for MentorHub:
+
+                %s
+
+                The code is valid for 15 minutes.
+
+                If you did not register on MentorHub, please ignore this email.
+
+                Best regards,
                 MentorHub
                 """.formatted(code);
     }

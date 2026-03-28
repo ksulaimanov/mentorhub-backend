@@ -26,6 +26,9 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified;
 
+    @Column(name = "preferred_locale", nullable = false)
+    private String preferredLocale = "ru";
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -75,6 +78,10 @@ public class User {
         return emailVerified;
     }
 
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -101,6 +108,10 @@ public class User {
 
     public void setEmailVerified(boolean emailVerified) {
         this.emailVerified = emailVerified;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 
     public void setRoles(Set<Role> roles) {

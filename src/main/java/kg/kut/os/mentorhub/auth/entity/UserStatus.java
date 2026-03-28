@@ -3,5 +3,5 @@ package kg.kut.os.mentorhub.auth.entity;
 public enum UserStatus {
     ACTIVE,
     BLOCKED,
-    PENDING_VERIFICATION
+    PENDING_EMAIL_VERIFICATION
 }

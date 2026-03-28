@@ -12,8 +12,8 @@ public class LoggingEmailNotificationService implements EmailNotificationService
     private static final Logger log = LoggerFactory.getLogger(LoggingEmailNotificationService.class);
 
     @Override
-    public void sendEmailVerificationCode(String toEmail, String code) {
-        log.info("MAIL DISABLED. Verification code for {}: {}", toEmail, code);
+    public void sendEmailVerificationCode(String toEmail, String code, String locale) {
+        log.info("MAIL DISABLED. Verification code for {} (locale={}): {}", toEmail, locale, code);
     }
 
     @Override

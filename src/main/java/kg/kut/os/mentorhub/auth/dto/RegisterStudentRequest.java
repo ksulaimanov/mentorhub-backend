@@ -15,6 +15,9 @@ public class RegisterStudentRequest {
     @Size(min = 8, max = 100)
     private String password;
 
+    @Size(max = 10)
+    private String preferredLocale;
+
     public RegisterStudentRequest() {
     }
 
@@ -26,11 +29,19 @@ public class RegisterStudentRequest {
         return password;
     }
 
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
     public void setEmail(String email) {
         this.email = email;
     }
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }
