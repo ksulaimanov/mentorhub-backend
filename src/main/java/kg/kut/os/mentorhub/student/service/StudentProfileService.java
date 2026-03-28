@@ -1,6 +1,8 @@
 package kg.kut.os.mentorhub.student.service;
 
+import kg.kut.os.mentorhub.auth.repository.UserRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.util.LocaleUtils;
 import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.student.dto.StudentProfileResponse;
 import kg.kut.os.mentorhub.student.dto.UpdateStudentProfileRequest;
@@ -14,10 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class StudentProfileService {
 
     private final StudentProfileRepository studentProfileRepository;
+    private final UserRepository userRepository;
     private final StorageService storageService;
 
-    public StudentProfileService(StudentProfileRepository studentProfileRepository, StorageService storageService) {
+    public StudentProfileService(StudentProfileRepository studentProfileRepository,
+                                 UserRepository userRepository,
+                                 StorageService storageService) {
         this.studentProfileRepository = studentProfileRepository;
+        this.userRepository = userRepository;
         this.storageService = storageService;
     }
 
@@ -40,6 +46,11 @@ public class StudentProfileService {
         profile.setPhone(request.getPhone());
         profile.setCity(request.getCity());
 
+        // Update locale on the User entity if provided
+        if (request.getPreferredLocale() != null) {
+            profile.getUser().setPreferredLocale(LocaleUtils.normalize(request.getPreferredLocale()));
+        }
+
         return map(profile);
     }
 
@@ -59,6 +70,7 @@ public class StudentProfileService {
         response.setTimezone(profile.getTimezone());
         response.setPhone(profile.getPhone());
         response.setCity(profile.getCity());
+        response.setPreferredLocale(profile.getUser().getPreferredLocale());
         return response;
     }
 }

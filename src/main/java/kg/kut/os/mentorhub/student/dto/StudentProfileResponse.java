@@ -13,6 +13,7 @@ public class StudentProfileResponse {
     private String timezone;
     private String phone;
     private String city;
+    private String preferredLocale;
 
     public StudentProfileResponse() {
     }
@@ -61,6 +62,10 @@ public class StudentProfileResponse {
         return city;
     }
 
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -103,5 +108,9 @@ public class StudentProfileResponse {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }
