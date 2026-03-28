@@ -246,6 +246,14 @@ public class AuthService {
     }
 
     private void issueAndSendVerificationCode(User user) {
+        // Invalidate any previous unused codes
+        emailVerificationCodeRepository.findTopByUserOrderByCreatedAtDesc(user)
+                .filter(old -> !old.isUsed())
+                .ifPresent(old -> {
+                    old.setUsed(true);
+                    emailVerificationCodeRepository.save(old);
+                });
+
         String code = generateSixDigitCode();
 
         EmailVerificationCode verificationCode = new EmailVerificationCode();
@@ -361,6 +369,14 @@ public class AuthService {
     }
 
     private void issueAndSendPasswordResetCode(User user) {
+        // Invalidate any previous unused codes
+        passwordResetCodeRepository.findTopByUserOrderByCreatedAtDesc(user)
+                .filter(old -> !old.isUsed())
+                .ifPresent(old -> {
+                    old.setUsed(true);
+                    passwordResetCodeRepository.save(old);
+                });
+
         String code = generateSixDigitCode();
 
         PasswordResetCode resetCode = new PasswordResetCode();
@@ -371,7 +387,7 @@ public class AuthService {
         resetCode.setAttempts(0);
 
         passwordResetCodeRepository.save(resetCode);
-        emailNotificationService.sendPasswordResetCode(user.getEmail(), code);
+        emailNotificationService.sendPasswordResetCode(user.getEmail(), code, user.getPreferredLocale());
     }
 
     private void revokeAllRefreshTokens(User user) {
