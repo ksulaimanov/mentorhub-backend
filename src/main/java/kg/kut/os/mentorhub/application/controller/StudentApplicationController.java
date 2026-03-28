@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import kg.kut.os.mentorhub.application.dto.ApplicationStatusResponse;
 import kg.kut.os.mentorhub.application.dto.SubmitApplicationRequest;
 import kg.kut.os.mentorhub.application.service.MentorApplicationService;
+import kg.kut.os.mentorhub.auth.entity.User;
 import kg.kut.os.mentorhub.common.security.CurrentUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,16 +24,13 @@ public class StudentApplicationController {
         this.mentorApplicationService = mentorApplicationService;
     }
 
-    /**
-     * Студент подаёт заявку на менторство
-     * POST /api/student/mentor-application
-     */
+
     @PostMapping
     public ResponseEntity<ApplicationStatusResponse> submitApplication(
             @Valid @RequestBody SubmitApplicationRequest request,
-            @CurrentUser Long userId
+            @CurrentUser User currentUser
     ) {
-        ApplicationStatusResponse response = mentorApplicationService.submitApplication(userId, request);
+        ApplicationStatusResponse response = mentorApplicationService.submitApplication(currentUser.getId(), request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -42,9 +40,9 @@ public class StudentApplicationController {
      */
     @GetMapping
     public ResponseEntity<ApplicationStatusResponse> getApplicationStatus(
-            @CurrentUser Long userId
+            @CurrentUser User currentUser
     ) {
-        ApplicationStatusResponse response = mentorApplicationService.getApplicationStatus(userId);
+        ApplicationStatusResponse response = mentorApplicationService.getApplicationStatus(currentUser.getId());
         return ResponseEntity.ok(response);
     }
 }
