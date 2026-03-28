@@ -27,7 +27,7 @@ public class User {
     private boolean emailVerified;
 
     @Column(name = "preferred_locale", nullable = false)
-    private String preferredLocale = "ru";
+    private String preferredLocale = "ky";
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

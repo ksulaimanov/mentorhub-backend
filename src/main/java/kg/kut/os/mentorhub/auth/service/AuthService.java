@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import kg.kut.os.mentorhub.auth.dto.*;
 import kg.kut.os.mentorhub.auth.entity.*;
 import kg.kut.os.mentorhub.auth.repository.*;
+import kg.kut.os.mentorhub.common.util.LocaleUtils;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import kg.kut.os.mentorhub.notification.EmailNotificationService;
@@ -72,12 +73,12 @@ public class AuthService {
     }
 
     public void registerStudent(RegisterStudentRequest request) {
-        String locale = request.getPreferredLocale() != null ? request.getPreferredLocale() : "ru";
+        String locale = LocaleUtils.normalize(request.getPreferredLocale());
         register(request.getEmail(), request.getPassword(), RoleCode.ROLE_STUDENT, locale);
     }
 
     public void registerMentor(RegisterMentorRequest request) {
-        register(request.getEmail(), request.getPassword(), RoleCode.ROLE_MENTOR, "ru");
+        register(request.getEmail(), request.getPassword(), RoleCode.ROLE_MENTOR, LocaleUtils.DEFAULT_LOCALE);
     }
 
     public void verifyEmail(VerifyEmailRequest request) {

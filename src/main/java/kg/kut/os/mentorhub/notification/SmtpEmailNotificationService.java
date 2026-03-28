@@ -29,14 +29,13 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
     }
 
     @Override
-
     public void sendEmailVerificationCode(String toEmail, String code, String locale) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
         message.setTo(toEmail);
-        boolean isEnglish = "en".equalsIgnoreCase(locale);
-        message.setSubject(isEnglish ? "Email verification for MentorHub" : "Подтверждение email в MentorHub");
-        message.setText(isEnglish ? buildVerificationTextEn(code) : buildVerificationTextRu(code));
+        boolean isRussian = "ru".equals(locale);
+        message.setSubject(isRussian ? "Подтверждение email в MentorHub" : "MentorHub'та email тастыктоо");
+        message.setText(isRussian ? buildVerificationTextRu(code) : buildVerificationTextKy(code));
 
         try {
             mailSender.send(message);
@@ -67,19 +66,19 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
                 """.formatted(code);
     }
 
-    private String buildVerificationTextEn(String code) {
+    private String buildVerificationTextKy(String code) {
         return """
-                Hello!
+                Саламатсызбы!
 
-                Your verification code for MentorHub:
+                MentorHub үчүн тастыктоо кодуңуз:
 
                 %s
 
-                The code is valid for 15 minutes.
+                Код 15 мүнөт иштейт.
 
-                If you did not register on MentorHub, please ignore this email.
+                Эгер сиз MentorHub'ка катталбасаңыз, бул катты этибарга албаңыз.
 
-                Best regards,
+                Урмат менен,
                 MentorHub
                 """.formatted(code);
     }
