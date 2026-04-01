@@ -26,9 +26,9 @@ public class UpdateMentorProfileRequest {
     private String specialization;
 
     private Integer yearsExperience;
-    private boolean lessonFormatOnline;
-    private boolean lessonFormatOffline;
-    private boolean lessonFormatHybrid;
+    private Boolean lessonFormatOnline;
+    private Boolean lessonFormatOffline;
+    private Boolean lessonFormatHybrid;
 
     @Size(max = 100)
     private String city;
@@ -42,7 +42,7 @@ public class UpdateMentorProfileRequest {
     @DecimalMin(value = "0.0", inclusive = true)
     private BigDecimal pricePerHour;
 
-    private boolean isPublic;
+    private Boolean isPublic;
 
     public UpdateMentorProfileRequest() {
     }
@@ -75,15 +75,15 @@ public class UpdateMentorProfileRequest {
         return yearsExperience;
     }
 
-    public boolean isLessonFormatOnline() {
+    public Boolean getLessonFormatOnline() {
         return lessonFormatOnline;
     }
 
-    public boolean isLessonFormatOffline() {
+    public Boolean getLessonFormatOffline() {
         return lessonFormatOffline;
     }
 
-    public boolean isLessonFormatHybrid() {
+    public Boolean getLessonFormatHybrid() {
         return lessonFormatHybrid;
     }
 
@@ -103,7 +103,7 @@ public class UpdateMentorProfileRequest {
         return pricePerHour;
     }
 
-    public boolean isPublic() {
+    public Boolean getIsPublic() {
         return isPublic;
     }
 
@@ -135,15 +135,15 @@ public class UpdateMentorProfileRequest {
         this.yearsExperience = yearsExperience;
     }
 
-    public void setLessonFormatOnline(boolean lessonFormatOnline) {
+    public void setLessonFormatOnline(Boolean lessonFormatOnline) {
         this.lessonFormatOnline = lessonFormatOnline;
     }
 
-    public void setLessonFormatOffline(boolean lessonFormatOffline) {
+    public void setLessonFormatOffline(Boolean lessonFormatOffline) {
         this.lessonFormatOffline = lessonFormatOffline;
     }
 
-    public void setLessonFormatHybrid(boolean lessonFormatHybrid) {
+    public void setLessonFormatHybrid(Boolean lessonFormatHybrid) {
         this.lessonFormatHybrid = lessonFormatHybrid;
     }
 
@@ -163,7 +163,7 @@ public class UpdateMentorProfileRequest {
         this.pricePerHour = pricePerHour;
     }
 
-    public void setPublic(boolean aPublic) {
+    public void setPublic(Boolean aPublic) {
         isPublic = aPublic;
     }
 }
