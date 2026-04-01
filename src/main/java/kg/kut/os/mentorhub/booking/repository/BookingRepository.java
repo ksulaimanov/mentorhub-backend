@@ -27,7 +27,79 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     long countByAvailabilitySlotIdAndStatusIn(Long availabilitySlotId, Collection<BookingStatus> statuses);
 
     // ----------------------------------------------------------------
-    // Dashboard queries
+    // Filtered booking lists for student / mentor
+    // ----------------------------------------------------------------
+
+    @Query("""
+            select b from Booking b
+            join fetch b.mentor m
+            join fetch m.user mu
+            join fetch b.student st
+            join fetch st.user su
+            join fetch b.availabilitySlot s
+            where b.student.user.id = :userId
+            order by b.startAt desc
+            """)
+    List<Booking> findAllByStudentUserIdFetched(@Param("userId") Long userId);
+
+    @Query("""
+            select b from Booking b
+            join fetch b.mentor m
+            join fetch m.user mu
+            join fetch b.student st
+            join fetch st.user su
+            join fetch b.availabilitySlot s
+            where b.student.user.id = :userId
+              and b.status = :status
+            order by b.startAt desc
+            """)
+    List<Booking> findAllByStudentUserIdAndStatusFetched(
+            @Param("userId") Long userId,
+            @Param("status") BookingStatus status
+    );
+
+    @Query("""
+            select b from Booking b
+            join fetch b.mentor m
+            join fetch m.user mu
+            join fetch b.student st
+            join fetch st.user su
+            join fetch b.availabilitySlot s
+            where b.mentor.user.id = :userId
+            order by b.startAt desc
+            """)
+    List<Booking> findAllByMentorUserIdFetched(@Param("userId") Long userId);
+
+    @Query("""
+            select b from Booking b
+            join fetch b.mentor m
+            join fetch m.user mu
+            join fetch b.student st
+            join fetch st.user su
+            join fetch b.availabilitySlot s
+            where b.mentor.user.id = :userId
+              and b.status = :status
+            order by b.startAt desc
+            """)
+    List<Booking> findAllByMentorUserIdAndStatusFetched(
+            @Param("userId") Long userId,
+            @Param("status") BookingStatus status
+    );
+
+    // ----------------------------------------------------------------
+    // Batch booking count per slot (avoids N+1)
+    // ----------------------------------------------------------------
+
+    @Query("""
+            select b.availabilitySlot.id, count(b) from Booking b
+            where b.availabilitySlot.id in :slotIds
+              and b.status in :statuses
+            group by b.availabilitySlot.id
+            """)
+    List<Object[]> countBySlotIdsAndStatusIn(
+            @Param("slotIds") Collection<Long> slotIds,
+            @Param("statuses") Collection<BookingStatus> statuses
+    );
     // ----------------------------------------------------------------
 
     /**
