@@ -71,6 +71,14 @@ public class GlobalExceptionHandler {
         return build(status, "REQUEST_ERROR", message, request, null);
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handleNotFound(
+            NotFoundException ex,
+            HttpServletRequest request
+    ) {
+        return build(HttpStatus.NOT_FOUND, "NOT_FOUND", ex.getMessage(), request, null);
+    }
+
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiErrorResponse> handleBadRequest(
             BadRequestException ex,
