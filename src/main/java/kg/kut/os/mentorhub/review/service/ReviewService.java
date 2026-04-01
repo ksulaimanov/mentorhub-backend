@@ -4,6 +4,7 @@ import kg.kut.os.mentorhub.booking.entity.Booking;
 import kg.kut.os.mentorhub.booking.entity.BookingStatus;
 import kg.kut.os.mentorhub.booking.repository.BookingRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import kg.kut.os.mentorhub.review.dto.CreateReviewRequest;
@@ -38,7 +39,7 @@ public class ReviewService {
 
     public ReviewResponse createReview(Long studentUserId, CreateReviewRequest request) {
         Booking booking = bookingRepository.findByIdAndStudentUserId(request.getBookingId(), studentUserId)
-                .orElseThrow(() -> new BadRequestException("Бронирование не найдено"));
+                .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));
 
         if (booking.getStatus() != BookingStatus.COMPLETED) {
             throw new BadRequestException("Отзыв можно оставить только после завершённого занятия");
@@ -75,7 +76,7 @@ public class ReviewService {
 
     private void recalculateMentorStats(Long mentorId) {
         MentorProfile mentor = mentorProfileRepository.findById(mentorId)
-                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
 
         BigDecimal average = reviewRepository.findAverageRatingByMentorId(mentorId);
         long completedLessons = bookingRepository.findAllByMentorUserIdOrderByStartAtAsc(mentor.getUser().getId())

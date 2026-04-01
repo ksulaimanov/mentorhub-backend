@@ -1,7 +1,7 @@
 package kg.kut.os.mentorhub.student.service;
 
 import kg.kut.os.mentorhub.auth.repository.UserRepository;
-import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.common.util.LocaleUtils;
 import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.student.dto.StudentProfileResponse;
@@ -29,14 +29,14 @@ public class StudentProfileService {
 
     public StudentProfileResponse getByUserId(Long userId) {
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new BadRequestException("Профиль ученика не найден"));
+                .orElseThrow(() -> new NotFoundException("Профиль ученика не найден"));
 
         return map(profile);
     }
 
     public StudentProfileResponse update(Long userId, UpdateStudentProfileRequest request) {
         StudentProfile profile = studentProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new BadRequestException("Профиль ученика не найден"));
+                .orElseThrow(() -> new NotFoundException("Профиль ученика не найден"));
 
         profile.setFirstName(request.getFirstName());
         profile.setLastName(request.getLastName());

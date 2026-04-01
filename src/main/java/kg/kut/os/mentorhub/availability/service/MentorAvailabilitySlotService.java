@@ -9,17 +9,26 @@ import kg.kut.os.mentorhub.availability.repository.MentorAvailabilitySlotReposit
 import kg.kut.os.mentorhub.booking.entity.BookingStatus;
 import kg.kut.os.mentorhub.booking.repository.BookingRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
 public class MentorAvailabilitySlotService {
+
+    private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES = List.of(
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED
+    );
 
     private final MentorProfileRepository mentorProfileRepository;
     private final MentorAvailabilitySlotRepository slotRepository;
@@ -44,7 +53,7 @@ public class MentorAvailabilitySlotService {
         }
 
         MentorProfile mentor = mentorProfileRepository.findByUserId(mentorUserId)
-                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
 
         MentorAvailabilitySlot slot = new MentorAvailabilitySlot();
         slot.setMentor(mentor);
@@ -57,14 +66,13 @@ public class MentorAvailabilitySlotService {
         slot.setCapacity(request.getCapacity());
         slot.setActive(true);
 
-        return map(slotRepository.save(slot));
+        MentorAvailabilitySlot saved = slotRepository.save(slot);
+        return mapSingle(saved);
     }
 
     public List<AvailabilitySlotResponse> getMentorSlots(Long mentorUserId) {
-        return slotRepository.findAllByMentorUserIdOrderByStartAtAsc(mentorUserId)
-                .stream()
-                .map(this::map)
-                .toList();
+        List<MentorAvailabilitySlot> slots = slotRepository.findAllByMentorUserIdOrderByStartAtAsc(mentorUserId);
+        return mapAll(slots);
     }
 
     public AvailabilitySlotResponse update(Long mentorUserId, Long slotId, UpdateAvailabilitySlotRequest request) {
@@ -76,11 +84,11 @@ public class MentorAvailabilitySlotService {
         }
 
         MentorAvailabilitySlot slot = slotRepository.findByIdAndMentorUserId(slotId, mentorUserId)
-                .orElseThrow(() -> new BadRequestException("Слот ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Слот ментора не найден"));
 
         long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
                 slot.getId(),
-                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
+                ACTIVE_BOOKING_STATUSES
         );
 
         if (request.getCapacity() < bookedCount) {
@@ -96,23 +104,26 @@ public class MentorAvailabilitySlotService {
         slot.setCapacity(request.getCapacity());
         slot.setActive(request.isActive());
 
-        return map(slot);
+        return mapSingle(slot);
     }
 
     public void deactivate(Long mentorUserId, Long slotId) {
         MentorAvailabilitySlot slot = slotRepository.findByIdAndMentorUserId(slotId, mentorUserId)
-                .orElseThrow(() -> new BadRequestException("Слот ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Слот ментора не найден"));
 
         slot.setActive(false);
     }
 
     public List<AvailabilitySlotResponse> getPublicSlots(Long mentorProfileId) {
-        return slotRepository.findByMentorIdAndIsActiveTrueAndStartAtAfterOrderByStartAtAsc(
-                        mentorProfileId, LocalDateTime.now())
-                .stream()
-                .map(this::map)
-                .toList();
+        List<MentorAvailabilitySlot> slots = slotRepository
+                .findByMentorIdAndIsActiveTrueAndStartAtAfterOrderByStartAtAsc(
+                        mentorProfileId, LocalDateTime.now());
+        return mapAll(slots);
     }
+
+    // ----------------------------------------------------------------
+    // Validation helpers
+    // ----------------------------------------------------------------
 
     private void validateTimeRange(LocalDateTime startAt, LocalDateTime endAt) {
         if (endAt.isBefore(startAt) || endAt.isEqual(startAt)) {
@@ -136,12 +147,42 @@ public class MentorAvailabilitySlotService {
         }
     }
 
-    private AvailabilitySlotResponse map(MentorAvailabilitySlot slot) {
-        long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
-                slot.getId(),
-                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
-        );
+    // ----------------------------------------------------------------
+    // Mapping helpers — batch count to avoid N+1
+    // ----------------------------------------------------------------
 
+    /**
+     * Maps a list of slots using a single batch count query for booked counts.
+     */
+    private List<AvailabilitySlotResponse> mapAll(List<MentorAvailabilitySlot> slots) {
+        if (slots.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> slotIds = slots.stream().map(MentorAvailabilitySlot::getId).toList();
+        Map<Long, Long> bookedCountMap = bookingRepository
+                .countBySlotIdsAndStatusIn(slotIds, ACTIVE_BOOKING_STATUSES)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        return slots.stream()
+                .map(slot -> mapSlot(slot, bookedCountMap.getOrDefault(slot.getId(), 0L)))
+                .toList();
+    }
+
+    /**
+     * Maps a single slot (used after create/update where batch is unnecessary).
+     */
+    private AvailabilitySlotResponse mapSingle(MentorAvailabilitySlot slot) {
+        long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
+                slot.getId(), ACTIVE_BOOKING_STATUSES);
+        return mapSlot(slot, bookedCount);
+    }
+
+    private AvailabilitySlotResponse mapSlot(MentorAvailabilitySlot slot, long bookedCount) {
         AvailabilitySlotResponse response = new AvailabilitySlotResponse();
         response.setId(slot.getId());
         response.setMentorId(slot.getMentor().getId());

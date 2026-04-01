@@ -1,6 +1,6 @@
 package kg.kut.os.mentorhub.mentor.service;
 
-import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.dto.MentorProfileResponse;
 import kg.kut.os.mentorhub.mentor.dto.UpdateMentorProfileRequest;
@@ -23,15 +23,35 @@ public class MentorProfileService {
 
     public MentorProfileResponse getByUserId(Long userId) {
         MentorProfile profile = mentorProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
 
         return map(profile);
     }
 
     public MentorProfileResponse update(Long userId, UpdateMentorProfileRequest request) {
         MentorProfile profile = mentorProfileRepository.findByUserId(userId)
-                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
 
+        applyUpdates(profile, request);
+        return map(profile);
+    }
+
+    public MentorProfileResponse getByEmail(String email) {
+        MentorProfile profile = mentorProfileRepository.findByUserEmail(email)
+                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден для: " + email));
+
+        return map(profile);
+    }
+
+    public MentorProfileResponse updateByEmail(String email, UpdateMentorProfileRequest request) {
+        MentorProfile profile = mentorProfileRepository.findByUserEmail(email)
+                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
+
+        applyUpdates(profile, request);
+        return map(profile);
+    }
+
+    private void applyUpdates(MentorProfile profile, UpdateMentorProfileRequest request) {
         profile.setFirstName(request.getFirstName());
         profile.setLastName(request.getLastName());
         profile.setAvatarKey(request.getAvatarKey());
@@ -39,16 +59,25 @@ public class MentorProfileService {
         profile.setBio(request.getBio());
         profile.setSpecialization(request.getSpecialization());
         profile.setYearsExperience(request.getYearsExperience());
-        profile.setLessonFormatOnline(request.isLessonFormatOnline());
-        profile.setLessonFormatOffline(request.isLessonFormatOffline());
-        profile.setLessonFormatHybrid(request.isLessonFormatHybrid());
         profile.setCity(request.getCity());
         profile.setAddressText(request.getAddressText());
         profile.setMeetingLink(request.getMeetingLink());
         profile.setPricePerHour(request.getPricePerHour());
-        profile.setPublic(request.isPublic());
 
-        return map(profile);
+        // Boolean wrapper fields: only update when explicitly provided (non-null),
+        // so that omitting the field in JSON preserves the current value.
+        if (request.getLessonFormatOnline() != null) {
+            profile.setLessonFormatOnline(request.getLessonFormatOnline());
+        }
+        if (request.getLessonFormatOffline() != null) {
+            profile.setLessonFormatOffline(request.getLessonFormatOffline());
+        }
+        if (request.getLessonFormatHybrid() != null) {
+            profile.setLessonFormatHybrid(request.getLessonFormatHybrid());
+        }
+        if (request.getIsPublic() != null) {
+            profile.setPublic(request.getIsPublic());
+        }
     }
 
     private MentorProfileResponse map(MentorProfile profile) {
@@ -78,35 +107,5 @@ public class MentorProfileService {
         response.setVerified(profile.isVerified());
         response.setPublic(profile.isPublic());
         return response;
-    }
-
-    public MentorProfileResponse getByEmail(String email) {
-        MentorProfile profile = mentorProfileRepository.findByUserEmail(email)
-                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден для: " + email));
-
-        return map(profile);
-    }
-
-    public MentorProfileResponse updateByEmail(String email, UpdateMentorProfileRequest request) {
-        MentorProfile profile = mentorProfileRepository.findByUserEmail(email)
-                .orElseThrow(() -> new BadRequestException("Профиль ментора не найден"));
-
-        profile.setFirstName(request.getFirstName());
-        profile.setLastName(request.getLastName());
-        profile.setAvatarKey(request.getAvatarKey());
-        profile.setHeadline(request.getHeadline());
-        profile.setBio(request.getBio());
-        profile.setSpecialization(request.getSpecialization());
-        profile.setYearsExperience(request.getYearsExperience());
-        profile.setLessonFormatOnline(request.isLessonFormatOnline());
-        profile.setLessonFormatOffline(request.isLessonFormatOffline());
-        profile.setLessonFormatHybrid(request.isLessonFormatHybrid());
-        profile.setCity(request.getCity());
-        profile.setAddressText(request.getAddressText());
-        profile.setMeetingLink(request.getMeetingLink());
-        profile.setPricePerHour(request.getPricePerHour());
-        profile.setPublic(request.isPublic());
-
-        return map(profile);
     }
 }

@@ -9,6 +9,8 @@ import kg.kut.os.mentorhub.booking.entity.Booking;
 import kg.kut.os.mentorhub.booking.entity.BookingStatus;
 import kg.kut.os.mentorhub.booking.repository.BookingRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.NotFoundException;
+import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.student.entity.StudentProfile;
 import kg.kut.os.mentorhub.student.repository.StudentProfileRepository;
@@ -30,23 +32,26 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final StudentProfileRepository studentProfileRepository;
     private final MentorAvailabilitySlotRepository slotRepository;
+    private final StorageService storageService;
 
     public BookingService(
             BookingRepository bookingRepository,
             StudentProfileRepository studentProfileRepository,
-            MentorAvailabilitySlotRepository slotRepository
+            MentorAvailabilitySlotRepository slotRepository,
+            StorageService storageService
     ) {
         this.bookingRepository = bookingRepository;
         this.studentProfileRepository = studentProfileRepository;
         this.slotRepository = slotRepository;
+        this.storageService = storageService;
     }
 
     public BookingResponse createBooking(Long studentUserId, CreateBookingRequest request) {
         StudentProfile student = studentProfileRepository.findByUserId(studentUserId)
-                .orElseThrow(() -> new BadRequestException("Профиль ученика не найден"));
+                .orElseThrow(() -> new NotFoundException("Профиль ученика не найден"));
 
         MentorAvailabilitySlot slot = slotRepository.findByIdForUpdate(request.getAvailabilitySlotId())
-                .orElseThrow(() -> new BadRequestException("Слот не найден"));
+                .orElseThrow(() -> new NotFoundException("Слот не найден"));
 
         if (!slot.isActive()) {
             throw new BadRequestException("Слот недоступен для записи");
@@ -85,23 +90,29 @@ public class BookingService {
         return map(savedBooking);
     }
 
-    public List<BookingResponse> getStudentBookings(Long studentUserId) {
-        return bookingRepository.findAllByStudentUserIdOrderByStartAtAsc(studentUserId)
-                .stream()
-                .map(this::map)
-                .toList();
+    public List<BookingResponse> getStudentBookings(Long studentUserId, BookingStatus status) {
+        List<Booking> bookings;
+        if (status != null) {
+            bookings = bookingRepository.findAllByStudentUserIdAndStatusFetched(studentUserId, status);
+        } else {
+            bookings = bookingRepository.findAllByStudentUserIdFetched(studentUserId);
+        }
+        return bookings.stream().map(this::map).toList();
     }
 
-    public List<BookingResponse> getMentorBookings(Long mentorUserId) {
-        return bookingRepository.findAllByMentorUserIdOrderByStartAtAsc(mentorUserId)
-                .stream()
-                .map(this::map)
-                .toList();
+    public List<BookingResponse> getMentorBookings(Long mentorUserId, BookingStatus status) {
+        List<Booking> bookings;
+        if (status != null) {
+            bookings = bookingRepository.findAllByMentorUserIdAndStatusFetched(mentorUserId, status);
+        } else {
+            bookings = bookingRepository.findAllByMentorUserIdFetched(mentorUserId);
+        }
+        return bookings.stream().map(this::map).toList();
     }
 
     public void cancelByStudent(Long studentUserId, Long bookingId) {
         Booking booking = bookingRepository.findByIdAndStudentUserId(bookingId, studentUserId)
-                .orElseThrow(() -> new BadRequestException("Бронирование не найдено"));
+                .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));
 
         if (booking.getStatus() == BookingStatus.CANCELLED_BY_STUDENT ||
                 booking.getStatus() == BookingStatus.CANCELLED_BY_MENTOR ||
@@ -114,7 +125,7 @@ public class BookingService {
 
     public BookingResponse updateMentorBookingStatus(Long mentorUserId, Long bookingId, UpdateBookingStatusRequest request) {
         Booking booking = bookingRepository.findByIdAndMentorUserId(bookingId, mentorUserId)
-                .orElseThrow(() -> new BadRequestException("Бронирование не найдено"));
+                .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));
 
         if (request.getStatus() != BookingStatus.CONFIRMED &&
                 request.getStatus() != BookingStatus.CANCELLED_BY_MENTOR &&
@@ -134,10 +145,13 @@ public class BookingService {
     }
 
     private BookingResponse map(Booking booking) {
+        MentorProfile mentor = booking.getMentor();
+        StudentProfile student = booking.getStudent();
+
         BookingResponse response = new BookingResponse();
         response.setId(booking.getId());
-        response.setStudentId(booking.getStudent().getId());
-        response.setMentorId(booking.getMentor().getId());
+        response.setStudentId(student.getId());
+        response.setMentorId(mentor.getId());
         response.setAvailabilitySlotId(booking.getAvailabilitySlot().getId());
         response.setStartAt(booking.getStartAt());
         response.setEndAt(booking.getEndAt());
@@ -148,6 +162,16 @@ public class BookingService {
         response.setStatus(booking.getStatus());
         response.setStudentNote(booking.getStudentNote());
         response.setMentorNote(booking.getMentorNote());
+
+        response.setMentorFirstName(mentor.getFirstName());
+        response.setMentorLastName(mentor.getLastName());
+        response.setMentorAvatarUrl(storageService.buildPublicUrl(mentor.getAvatarKey()));
+        response.setStudentFirstName(student.getFirstName());
+        response.setStudentLastName(student.getLastName());
+        response.setStudentAvatarUrl(storageService.buildPublicUrl(student.getAvatarKey()));
+        response.setCreatedAt(booking.getCreatedAt());
+        response.setUpdatedAt(booking.getUpdatedAt());
+
         return response;
     }
 }

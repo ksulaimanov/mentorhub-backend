@@ -5,7 +5,7 @@ import kg.kut.os.mentorhub.availability.entity.MentorAvailabilitySlot;
 import kg.kut.os.mentorhub.availability.repository.MentorAvailabilitySlotRepository;
 import kg.kut.os.mentorhub.booking.entity.BookingStatus;
 import kg.kut.os.mentorhub.booking.repository.BookingRepository;
-import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryFilter;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryItemResponse;
@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -91,14 +93,14 @@ public class PublicMentorDirectoryService {
 
     public PublicMentorProfileResponse getPublicProfile(Long mentorId) {
         MentorProfile profile = mentorProfileRepository.findByIdAndIsPublicTrue(mentorId)
-                .orElseThrow(() -> new BadRequestException("Публичный профиль ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Публичный профиль ментора не найден"));
 
         return mapPublicProfile(profile);
     }
 
     public List<AvailabilitySlotResponse> getPublicSlots(Long mentorId) {
         MentorProfile profile = mentorProfileRepository.findByIdAndIsPublicTrue(mentorId)
-                .orElseThrow(() -> new BadRequestException("Публичный профиль ментора не найден"));
+                .orElseThrow(() -> new NotFoundException("Публичный профиль ментора не найден"));
 
         return mentorAvailabilitySlotRepository
                 .findByMentorIdAndIsActiveTrueAndStartAtAfterOrderByStartAtAsc(
