@@ -5,6 +5,7 @@ import kg.kut.os.mentorhub.booking.entity.BookingStatus;
 import kg.kut.os.mentorhub.booking.repository.BookingRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
 import kg.kut.os.mentorhub.common.exception.NotFoundException;
+import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import kg.kut.os.mentorhub.review.dto.CreateReviewRequest;
@@ -12,12 +13,13 @@ import kg.kut.os.mentorhub.review.dto.ReviewResponse;
 import kg.kut.os.mentorhub.review.entity.Review;
 import kg.kut.os.mentorhub.review.repository.ReviewRepository;
 import kg.kut.os.mentorhub.student.entity.StudentProfile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
 
 @Service
 @Transactional
@@ -26,15 +28,18 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final BookingRepository bookingRepository;
     private final MentorProfileRepository mentorProfileRepository;
+    private final StorageService storageService;
 
     public ReviewService(
             ReviewRepository reviewRepository,
             BookingRepository bookingRepository,
-            MentorProfileRepository mentorProfileRepository
+            MentorProfileRepository mentorProfileRepository,
+            StorageService storageService
     ) {
         this.reviewRepository = reviewRepository;
         this.bookingRepository = bookingRepository;
         this.mentorProfileRepository = mentorProfileRepository;
+        this.storageService = storageService;
     }
 
     public ReviewResponse createReview(Long studentUserId, CreateReviewRequest request) {
@@ -67,11 +72,9 @@ public class ReviewService {
     }
 
     @Transactional(readOnly = true)
-    public List<ReviewResponse> getPublicMentorReviews(Long mentorId) {
-        return reviewRepository.findAllByMentorIdOrderByCreatedAtDesc(mentorId)
-                .stream()
-                .map(this::map)
-                .toList();
+    public Page<ReviewResponse> getPublicMentorReviews(Long mentorId, Pageable pageable) {
+        return reviewRepository.findAllByMentorIdOrderByCreatedAtDesc(mentorId, pageable)
+                .map(this::map);
     }
 
     private void recalculateMentorStats(Long mentorId) {
@@ -79,10 +82,8 @@ public class ReviewService {
                 .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
 
         BigDecimal average = reviewRepository.findAverageRatingByMentorId(mentorId);
-        long completedLessons = bookingRepository.findAllByMentorUserIdOrderByStartAtAsc(mentor.getUser().getId())
-                .stream()
-                .filter(booking -> booking.getStatus() == BookingStatus.COMPLETED)
-                .count();
+        long completedLessons = bookingRepository.countByMentorUserIdAndStatus(
+                mentor.getUser().getId(), BookingStatus.COMPLETED);
 
         mentor.setAverageRating(
                 average == null ? BigDecimal.ZERO : average.setScale(2, RoundingMode.HALF_UP)
@@ -91,14 +92,19 @@ public class ReviewService {
     }
 
     private ReviewResponse map(Review review) {
+        StudentProfile student = review.getStudent();
+
         ReviewResponse response = new ReviewResponse();
         response.setId(review.getId());
         response.setBookingId(review.getBooking().getId());
         response.setMentorId(review.getMentor().getId());
-        response.setStudentId(review.getStudent().getId());
+        response.setStudentId(student.getId());
         response.setRating(review.getRating());
         response.setComment(review.getComment());
         response.setCreatedAt(review.getCreatedAt());
+        response.setStudentFirstName(student.getFirstName());
+        response.setStudentLastName(student.getLastName());
+        response.setStudentAvatarUrl(storageService.buildPublicUrl(student.getAvatarKey()));
         return response;
     }
 }

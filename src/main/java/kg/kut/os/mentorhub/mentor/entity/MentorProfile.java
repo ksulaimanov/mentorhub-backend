@@ -179,6 +179,10 @@ public class    MentorProfile {
         return isPublic;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
     public void setUser(User user) {
         this.user = user;
     }

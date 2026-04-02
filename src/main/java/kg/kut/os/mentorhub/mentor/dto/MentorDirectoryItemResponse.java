@@ -20,6 +20,7 @@ public class MentorDirectoryItemResponse {
     private BigDecimal pricePerHour;
     private BigDecimal averageRating;
     private Integer lessonsCompleted;
+    private int reviewCount;
     private boolean verified;
 
     public MentorDirectoryItemResponse() {
@@ -89,6 +90,10 @@ public class MentorDirectoryItemResponse {
         return lessonsCompleted;
     }
 
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
     public boolean isVerified() {
         return verified;
     }
@@ -155,6 +160,10 @@ public class MentorDirectoryItemResponse {
 
     public void setLessonsCompleted(Integer lessonsCompleted) {
         this.lessonsCompleted = lessonsCompleted;
+    }
+
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
     }
 
     public void setVerified(boolean verified) {

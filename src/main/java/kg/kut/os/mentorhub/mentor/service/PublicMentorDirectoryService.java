@@ -12,6 +12,7 @@ import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryItemResponse;
 import kg.kut.os.mentorhub.mentor.dto.PublicMentorProfileResponse;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
+import kg.kut.os.mentorhub.review.repository.ReviewRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,27 +28,35 @@ import java.util.stream.Stream;
 @Transactional(readOnly = true)
 public class PublicMentorDirectoryService {
 
+    private static final List<BookingStatus> ACTIVE_BOOKING_STATUSES = List.of(
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED
+    );
+
     private final MentorProfileRepository mentorProfileRepository;
     private final MentorAvailabilitySlotRepository mentorAvailabilitySlotRepository;
     private final BookingRepository bookingRepository;
+    private final ReviewRepository reviewRepository;
     private final StorageService storageService;
 
     public PublicMentorDirectoryService(
             MentorProfileRepository mentorProfileRepository,
             MentorAvailabilitySlotRepository mentorAvailabilitySlotRepository,
             BookingRepository bookingRepository,
+            ReviewRepository reviewRepository,
             StorageService storageService
     ) {
         this.mentorProfileRepository = mentorProfileRepository;
         this.mentorAvailabilitySlotRepository = mentorAvailabilitySlotRepository;
         this.bookingRepository = bookingRepository;
+        this.reviewRepository = reviewRepository;
         this.storageService = storageService;
     }
 
     public List<MentorDirectoryItemResponse> getDirectory(MentorDirectoryFilter filter) {
         Sort sort = resolveSort(filter == null ? null : filter.getSortBy());
 
-        List<MentorProfile> profiles = mentorProfileRepository.findAllByIsPublicTrue(sort);
+        List<MentorProfile> profiles = mentorProfileRepository.findAllPublicWithUser(sort);
 
         Stream<MentorProfile> stream = profiles.stream();
 
@@ -102,13 +111,27 @@ public class PublicMentorDirectoryService {
         MentorProfile profile = mentorProfileRepository.findByIdAndIsPublicTrue(mentorId)
                 .orElseThrow(() -> new NotFoundException("Публичный профиль ментора не найден"));
 
-        return mentorAvailabilitySlotRepository
+        List<MentorAvailabilitySlot> slots = mentorAvailabilitySlotRepository
                 .findByMentorIdAndIsActiveTrueAndStartAtAfterOrderByStartAtAsc(
                         profile.getId(),
                         LocalDateTime.now()
-                )
+                );
+
+        if (slots.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> slotIds = slots.stream().map(MentorAvailabilitySlot::getId).toList();
+        Map<Long, Long> bookedCountMap = bookingRepository
+                .countBySlotIdsAndStatusIn(slotIds, ACTIVE_BOOKING_STATUSES)
                 .stream()
-                .map(this::mapAvailabilitySlot)
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (Long) row[1]
+                ));
+
+        return slots.stream()
+                .map(slot -> mapAvailabilitySlot(slot, bookedCountMap))
                 .toList();
     }
 
@@ -130,6 +153,7 @@ public class PublicMentorDirectoryService {
         response.setPricePerHour(profile.getPricePerHour());
         response.setAverageRating(profile.getAverageRating());
         response.setLessonsCompleted(profile.getLessonsCompleted());
+        response.setReviewCount((int) reviewRepository.countByMentorId(profile.getId()));
         response.setVerified(profile.isVerified());
         return response;
     }
@@ -155,15 +179,14 @@ public class PublicMentorDirectoryService {
         response.setPricePerHour(profile.getPricePerHour());
         response.setAverageRating(profile.getAverageRating());
         response.setLessonsCompleted(profile.getLessonsCompleted());
+        response.setReviewCount((int) reviewRepository.countByMentorId(profile.getId()));
+        response.setMemberSince(profile.getCreatedAt());
         response.setVerified(profile.isVerified());
         return response;
     }
 
-    private AvailabilitySlotResponse mapAvailabilitySlot(MentorAvailabilitySlot slot) {
-        long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
-                slot.getId(),
-                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED)
-        );
+    private AvailabilitySlotResponse mapAvailabilitySlot(MentorAvailabilitySlot slot, Map<Long, Long> bookedCountMap) {
+        long bookedCount = bookedCountMap.getOrDefault(slot.getId(), 0L);
         int capacity = slot.getCapacity();
         int available = Math.max(capacity - (int) bookedCount, 0);
 
@@ -214,3 +237,4 @@ public class PublicMentorDirectoryService {
         return value != null && !value.trim().isEmpty();
     }
 }
+

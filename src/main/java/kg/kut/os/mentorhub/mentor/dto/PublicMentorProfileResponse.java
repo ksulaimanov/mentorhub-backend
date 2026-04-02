@@ -1,6 +1,7 @@
 package kg.kut.os.mentorhub.mentor.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class PublicMentorProfileResponse {
 
@@ -23,6 +24,8 @@ public class PublicMentorProfileResponse {
     private BigDecimal pricePerHour;
     private BigDecimal averageRating;
     private Integer lessonsCompleted;
+    private int reviewCount;
+    private LocalDateTime memberSince;
     private boolean verified;
 
     public PublicMentorProfileResponse() {
@@ -104,6 +107,14 @@ public class PublicMentorProfileResponse {
         return lessonsCompleted;
     }
 
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
+    public LocalDateTime getMemberSince() {
+        return memberSince;
+    }
+
     public boolean isVerified() {
         return verified;
     }
@@ -182,6 +193,14 @@ public class PublicMentorProfileResponse {
 
     public void setLessonsCompleted(Integer lessonsCompleted) {
         this.lessonsCompleted = lessonsCompleted;
+    }
+
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
+    public void setMemberSince(LocalDateTime memberSince) {
+        this.memberSince = memberSince;
     }
 
     public void setVerified(boolean verified) {

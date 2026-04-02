@@ -6,6 +6,7 @@ import kg.kut.os.mentorhub.mentor.dto.MentorProfileResponse;
 import kg.kut.os.mentorhub.mentor.dto.UpdateMentorProfileRequest;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
+import kg.kut.os.mentorhub.review.repository.ReviewRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,10 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class MentorProfileService {
 
     private final MentorProfileRepository mentorProfileRepository;
+    private final ReviewRepository reviewRepository;
     private final StorageService storageService;
 
-    public MentorProfileService(MentorProfileRepository mentorProfileRepository, StorageService storageService) {
+    public MentorProfileService(MentorProfileRepository mentorProfileRepository,
+                                ReviewRepository reviewRepository,
+                                StorageService storageService) {
         this.mentorProfileRepository = mentorProfileRepository;
+        this.reviewRepository = reviewRepository;
         this.storageService = storageService;
     }
 
@@ -104,6 +109,7 @@ public class MentorProfileService {
         response.setPricePerHour(profile.getPricePerHour());
         response.setAverageRating(profile.getAverageRating());
         response.setLessonsCompleted(profile.getLessonsCompleted());
+        response.setReviewCount((int) reviewRepository.countByMentorId(profile.getId()));
         response.setVerified(profile.isVerified());
         response.setPublic(profile.isPublic());
         return response;
