@@ -9,6 +9,7 @@ import kg.kut.os.mentorhub.availability.repository.MentorAvailabilitySlotReposit
 import kg.kut.os.mentorhub.booking.entity.BookingStatus;
 import kg.kut.os.mentorhub.booking.repository.BookingRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.ConflictException;
 import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
@@ -52,8 +53,20 @@ public class MentorAvailabilitySlotService {
             throw new BadRequestException("Количество мест должно быть не меньше 1");
         }
 
+        if (!request.getStartAt().isAfter(LocalDateTime.now())) {
+            throw new BadRequestException("Нельзя создать слот в прошлом");
+        }
+
         MentorProfile mentor = mentorProfileRepository.findByUserId(mentorUserId)
                 .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
+
+        // Overlap check
+        boolean overlaps = slotRepository.existsOverlapping(
+                mentor.getId(), request.getStartAt(), request.getEndAt(), null
+        );
+        if (overlaps) {
+            throw new ConflictException("Слот пересекается с уже существующим слотом");
+        }
 
         MentorAvailabilitySlot slot = new MentorAvailabilitySlot();
         slot.setMentor(mentor);
@@ -85,6 +98,14 @@ public class MentorAvailabilitySlotService {
 
         MentorAvailabilitySlot slot = slotRepository.findByIdAndMentorUserId(slotId, mentorUserId)
                 .orElseThrow(() -> new NotFoundException("Слот ментора не найден"));
+
+        // Overlap check (exclude self)
+        boolean overlaps = slotRepository.existsOverlapping(
+                slot.getMentor().getId(), request.getStartAt(), request.getEndAt(), slot.getId()
+        );
+        if (overlaps) {
+            throw new ConflictException("Слот пересекается с уже существующим слотом");
+        }
 
         long bookedCount = bookingRepository.countByAvailabilitySlotIdAndStatusIn(
                 slot.getId(),
