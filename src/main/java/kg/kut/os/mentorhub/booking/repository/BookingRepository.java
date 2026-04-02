@@ -24,7 +24,41 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     Optional<Booking> findByIdAndMentorUserId(Long bookingId, Long userId);
 
+    @Query("""
+            select b from Booking b
+            join fetch b.mentor m
+            join fetch m.user mu
+            join fetch b.student st
+            join fetch st.user su
+            join fetch b.availabilitySlot s
+            where b.id = :bookingId
+              and b.student.user.id = :userId
+            """)
+    Optional<Booking> findByIdAndStudentUserIdFetched(
+            @Param("bookingId") Long bookingId,
+            @Param("userId") Long userId
+    );
+
+    @Query("""
+            select b from Booking b
+            join fetch b.mentor m
+            join fetch m.user mu
+            join fetch b.student st
+            join fetch st.user su
+            join fetch b.availabilitySlot s
+            where b.id = :bookingId
+              and b.mentor.user.id = :userId
+            """)
+    Optional<Booking> findByIdAndMentorUserIdFetched(
+            @Param("bookingId") Long bookingId,
+            @Param("userId") Long userId
+    );
+
     long countByAvailabilitySlotIdAndStatusIn(Long availabilitySlotId, Collection<BookingStatus> statuses);
+
+    boolean existsByStudentIdAndAvailabilitySlotIdAndStatusIn(
+            Long studentId, Long availabilitySlotId, Collection<BookingStatus> statuses
+    );
 
     // ----------------------------------------------------------------
     // Filtered booking lists for student / mentor
