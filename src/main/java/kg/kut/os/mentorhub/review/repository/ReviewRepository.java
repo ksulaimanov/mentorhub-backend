@@ -5,8 +5,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +27,13 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     long countByMentorId(Long mentorId);
 
     Optional<Review> findByIdAndStudentUserId(Long reviewId, Long userId);
+
+    /**
+     * Batch review count per mentor — avoids N+1 in directory listing.
+     * Returns rows of [mentorId, count].
+     */
+    @Query("select r.mentor.id, count(r) from Review r where r.mentor.id in :mentorIds group by r.mentor.id")
+    List<Object[]> countByMentorIds(@Param("mentorIds") Collection<Long> mentorIds);
 
     /** Global average rating across all mentors — for admin dashboard. */
     @Query("select avg(r.rating) from Review r")

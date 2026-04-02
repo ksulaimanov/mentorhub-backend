@@ -5,10 +5,8 @@ import java.math.BigDecimal;
 public class MentorDirectoryItemResponse {
 
     private Long id;
-    private Long userId;
     private String firstName;
     private String lastName;
-    private String avatarKey;
     private String avatarUrl;
     private String headline;
     private String specialization;
@@ -30,9 +28,6 @@ public class MentorDirectoryItemResponse {
         return id;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
 
     public String getFirstName() {
         return firstName;
@@ -42,9 +37,6 @@ public class MentorDirectoryItemResponse {
         return lastName;
     }
 
-    public String getAvatarKey() {
-        return avatarKey;
-    }
 
     public String getAvatarUrl() {
         return avatarUrl;
@@ -102,9 +94,6 @@ public class MentorDirectoryItemResponse {
         this.id = id;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
 
     public void setFirstName(String firstName) {
         this.firstName = firstName;
@@ -114,9 +103,6 @@ public class MentorDirectoryItemResponse {
         this.lastName = lastName;
     }
 
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
-    }
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;

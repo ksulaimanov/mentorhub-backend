@@ -1,15 +1,16 @@
 package kg.kut.os.mentorhub.mentor.dto;
 
+import kg.kut.os.mentorhub.review.dto.ReviewResponse;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class PublicMentorProfileResponse {
 
     private Long id;
-    private Long userId;
     private String firstName;
     private String lastName;
-    private String avatarKey;
     private String avatarUrl;
     private String headline;
     private String bio;
@@ -19,14 +20,14 @@ public class PublicMentorProfileResponse {
     private boolean lessonFormatOffline;
     private boolean lessonFormatHybrid;
     private String city;
-    private String addressText;
-    private String meetingLink;
     private BigDecimal pricePerHour;
     private BigDecimal averageRating;
     private Integer lessonsCompleted;
     private int reviewCount;
     private LocalDateTime memberSince;
     private boolean verified;
+    private boolean hasAvailableSlots;
+    private List<ReviewResponse> latestReviews;
 
     public PublicMentorProfileResponse() {
     }
@@ -35,20 +36,12 @@ public class PublicMentorProfileResponse {
         return id;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
-
     public String getFirstName() {
         return firstName;
     }
 
     public String getLastName() {
         return lastName;
-    }
-
-    public String getAvatarKey() {
-        return avatarKey;
     }
 
     public String getAvatarUrl() {
@@ -87,14 +80,6 @@ public class PublicMentorProfileResponse {
         return city;
     }
 
-    public String getAddressText() {
-        return addressText;
-    }
-
-    public String getMeetingLink() {
-        return meetingLink;
-    }
-
     public BigDecimal getPricePerHour() {
         return pricePerHour;
     }
@@ -119,12 +104,12 @@ public class PublicMentorProfileResponse {
         return verified;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public boolean isHasAvailableSlots() {
+        return hasAvailableSlots;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public void setFirstName(String firstName) {
@@ -133,10 +118,6 @@ public class PublicMentorProfileResponse {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
-    }
-
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
     }
 
     public void setAvatarUrl(String avatarUrl) {
@@ -175,14 +156,6 @@ public class PublicMentorProfileResponse {
         this.city = city;
     }
 
-    public void setAddressText(String addressText) {
-        this.addressText = addressText;
-    }
-
-    public void setMeetingLink(String meetingLink) {
-        this.meetingLink = meetingLink;
-    }
-
     public void setPricePerHour(BigDecimal pricePerHour) {
         this.pricePerHour = pricePerHour;
     }
@@ -205,5 +178,17 @@ public class PublicMentorProfileResponse {
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public void setHasAvailableSlots(boolean hasAvailableSlots) {
+        this.hasAvailableSlots = hasAvailableSlots;
+    }
+
+    public List<ReviewResponse> getLatestReviews() {
+        return latestReviews;
+    }
+
+    public void setLatestReviews(List<ReviewResponse> latestReviews) {
+        this.latestReviews = latestReviews;
     }
 }
