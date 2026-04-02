@@ -1,6 +1,7 @@
 package kg.kut.os.mentorhub.mentor.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -14,9 +15,6 @@ public class UpdateMentorProfileRequest {
     private String lastName;
 
     @Size(max = 255)
-    private String avatarKey;
-
-    @Size(max = 255)
     private String headline;
 
     @Size(max = 3000)
@@ -25,7 +23,9 @@ public class UpdateMentorProfileRequest {
     @Size(max = 255)
     private String specialization;
 
+    @Min(0)
     private Integer yearsExperience;
+
     private Boolean lessonFormatOnline;
     private Boolean lessonFormatOffline;
     private Boolean lessonFormatHybrid;
@@ -55,9 +55,6 @@ public class UpdateMentorProfileRequest {
         return lastName;
     }
 
-    public String getAvatarKey() {
-        return avatarKey;
-    }
 
     public String getHeadline() {
         return headline;
@@ -115,9 +112,6 @@ public class UpdateMentorProfileRequest {
         this.lastName = lastName;
     }
 
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
-    }
 
     public void setHeadline(String headline) {
         this.headline = headline;

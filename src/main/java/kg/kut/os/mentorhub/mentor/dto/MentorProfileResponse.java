@@ -1,6 +1,8 @@
 package kg.kut.os.mentorhub.mentor.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 public class MentorProfileResponse {
 
@@ -9,7 +11,6 @@ public class MentorProfileResponse {
     private String email;
     private String firstName;
     private String lastName;
-    private String avatarKey;
     private String avatarUrl;
     private String headline;
     private String bio;
@@ -27,6 +28,9 @@ public class MentorProfileResponse {
     private int reviewCount;
     private boolean verified;
     private boolean isPublic;
+    private LocalDateTime createdAt;
+    private boolean profileComplete;
+    private List<String> missingFields;
 
     public MentorProfileResponse() {
     }
@@ -51,9 +55,6 @@ public class MentorProfileResponse {
         return lastName;
     }
 
-    public String getAvatarKey() {
-        return avatarKey;
-    }
 
     public String getAvatarUrl() {
         return avatarUrl;
@@ -143,9 +144,6 @@ public class MentorProfileResponse {
         this.lastName = lastName;
     }
 
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
-    }
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
@@ -213,5 +211,29 @@ public class MentorProfileResponse {
 
     public void setPublic(boolean aPublic) {
         isPublic = aPublic;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public boolean isProfileComplete() {
+        return profileComplete;
+    }
+
+    public void setProfileComplete(boolean profileComplete) {
+        this.profileComplete = profileComplete;
+    }
+
+    public List<String> getMissingFields() {
+        return missingFields;
+    }
+
+    public void setMissingFields(List<String> missingFields) {
+        this.missingFields = missingFields;
     }
 }

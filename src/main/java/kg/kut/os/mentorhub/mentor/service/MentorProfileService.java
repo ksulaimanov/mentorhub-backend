@@ -10,6 +10,9 @@ import kg.kut.os.mentorhub.review.repository.ReviewRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Service
 @Transactional
 public class MentorProfileService {
@@ -26,6 +29,7 @@ public class MentorProfileService {
         this.storageService = storageService;
     }
 
+    @Transactional(readOnly = true)
     public MentorProfileResponse getByUserId(Long userId) {
         MentorProfile profile = mentorProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
@@ -41,9 +45,10 @@ public class MentorProfileService {
         return map(profile);
     }
 
+    @Transactional(readOnly = true)
     public MentorProfileResponse getByEmail(String email) {
         MentorProfile profile = mentorProfileRepository.findByUserEmail(email)
-                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден для: " + email));
+                .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
 
         return map(profile);
     }
@@ -56,21 +61,42 @@ public class MentorProfileService {
         return map(profile);
     }
 
+    /**
+     * Partial update: only non-null fields from the request override existing values.
+     * This prevents data loss when frontend sends only the fields being edited.
+     * avatarKey is NOT writable here — use the avatar upload endpoint.
+     */
     private void applyUpdates(MentorProfile profile, UpdateMentorProfileRequest request) {
-        profile.setFirstName(request.getFirstName());
-        profile.setLastName(request.getLastName());
-        profile.setAvatarKey(request.getAvatarKey());
-        profile.setHeadline(request.getHeadline());
-        profile.setBio(request.getBio());
-        profile.setSpecialization(request.getSpecialization());
-        profile.setYearsExperience(request.getYearsExperience());
-        profile.setCity(request.getCity());
-        profile.setAddressText(request.getAddressText());
-        profile.setMeetingLink(request.getMeetingLink());
-        profile.setPricePerHour(request.getPricePerHour());
-
-        // Boolean wrapper fields: only update when explicitly provided (non-null),
-        // so that omitting the field in JSON preserves the current value.
+        if (request.getFirstName() != null) {
+            profile.setFirstName(request.getFirstName().isBlank() ? null : request.getFirstName().trim());
+        }
+        if (request.getLastName() != null) {
+            profile.setLastName(request.getLastName().isBlank() ? null : request.getLastName().trim());
+        }
+        if (request.getHeadline() != null) {
+            profile.setHeadline(request.getHeadline().isBlank() ? null : request.getHeadline().trim());
+        }
+        if (request.getBio() != null) {
+            profile.setBio(request.getBio().isBlank() ? null : request.getBio().trim());
+        }
+        if (request.getSpecialization() != null) {
+            profile.setSpecialization(request.getSpecialization().isBlank() ? null : request.getSpecialization().trim());
+        }
+        if (request.getYearsExperience() != null) {
+            profile.setYearsExperience(request.getYearsExperience());
+        }
+        if (request.getCity() != null) {
+            profile.setCity(request.getCity().isBlank() ? null : request.getCity().trim());
+        }
+        if (request.getAddressText() != null) {
+            profile.setAddressText(request.getAddressText().isBlank() ? null : request.getAddressText().trim());
+        }
+        if (request.getMeetingLink() != null) {
+            profile.setMeetingLink(request.getMeetingLink().isBlank() ? null : request.getMeetingLink().trim());
+        }
+        if (request.getPricePerHour() != null) {
+            profile.setPricePerHour(request.getPricePerHour());
+        }
         if (request.getLessonFormatOnline() != null) {
             profile.setLessonFormatOnline(request.getLessonFormatOnline());
         }
@@ -93,7 +119,6 @@ public class MentorProfileService {
         response.setFirstName(profile.getFirstName());
         response.setLastName(profile.getLastName());
 
-        response.setAvatarKey(profile.getAvatarKey());
         response.setAvatarUrl(storageService.buildPublicUrl(profile.getAvatarKey()));
 
         response.setHeadline(profile.getHeadline());
@@ -112,6 +137,38 @@ public class MentorProfileService {
         response.setReviewCount((int) reviewRepository.countByMentorId(profile.getId()));
         response.setVerified(profile.isVerified());
         response.setPublic(profile.isPublic());
+        response.setCreatedAt(profile.getCreatedAt());
+
+        // Profile completeness signals for frontend
+        response.setProfileComplete(isProfileComplete(profile));
+        response.setMissingFields(computeMissingFields(profile));
+
         return response;
+    }
+
+    private boolean isProfileComplete(MentorProfile p) {
+        return hasText(p.getFirstName())
+                && hasText(p.getLastName())
+                && hasText(p.getHeadline())
+                && hasText(p.getBio())
+                && hasText(p.getSpecialization())
+                && (p.isLessonFormatOnline() || p.isLessonFormatOffline() || p.isLessonFormatHybrid());
+    }
+
+    private List<String> computeMissingFields(MentorProfile p) {
+        List<String> missing = new ArrayList<>();
+        if (!hasText(p.getFirstName())) missing.add("firstName");
+        if (!hasText(p.getLastName())) missing.add("lastName");
+        if (!hasText(p.getHeadline())) missing.add("headline");
+        if (!hasText(p.getBio())) missing.add("bio");
+        if (!hasText(p.getSpecialization())) missing.add("specialization");
+        if (!p.isLessonFormatOnline() && !p.isLessonFormatOffline() && !p.isLessonFormatHybrid()) {
+            missing.add("lessonFormat");
+        }
+        return missing;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
