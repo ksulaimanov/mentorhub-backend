@@ -212,6 +212,7 @@ public class PublicMentorDirectoryService {
         response.setId(profile.getId());
         response.setFirstName(safeString(profile.getFirstName()));
         response.setLastName(safeString(profile.getLastName()));
+        response.setDisplayName(buildDisplayName(profile));
         response.setAvatarUrl(safeAvatarUrl(profile.getAvatarKey()));
         response.setHeadline(profile.getHeadline());
         response.setSpecialization(profile.getSpecialization());
@@ -233,6 +234,7 @@ public class PublicMentorDirectoryService {
         response.setId(profile.getId());
         response.setFirstName(safeString(profile.getFirstName()));
         response.setLastName(safeString(profile.getLastName()));
+        response.setDisplayName(buildDisplayName(profile));
         response.setAvatarUrl(safeAvatarUrl(profile.getAvatarKey()));
         response.setHeadline(profile.getHeadline());
         response.setBio(profile.getBio());
@@ -246,9 +248,12 @@ public class PublicMentorDirectoryService {
         response.setAverageRating(profile.getAverageRating());
         response.setLessonsCompleted(profile.getLessonsCompleted());
         response.setReviewCount(reviewCount);
-        response.setMemberSince(profile.getCreatedAt());
+        response.setMemberSince(profile.getCreatedAt() != null ? profile.getCreatedAt().toString() : null);
         response.setVerified(profile.isVerified());
         response.setHasAvailableSlots(hasAvailableSlots);
+        response.setInstagramUrl(profile.getInstagramUrl());
+        response.setTelegramUsername(profile.getTelegramUsername());
+        response.setPublicEmail(profile.getPublicEmail());
         return response;
     }
 
@@ -321,6 +326,13 @@ public class PublicMentorDirectoryService {
     // ----------------------------------------------------------------
     // Null-safe helpers
     // ----------------------------------------------------------------
+
+    private String buildDisplayName(MentorProfile profile) {
+        String first = safeString(profile.getFirstName());
+        String last = safeString(profile.getLastName());
+        String combined = (first + " " + last).trim();
+        return combined.isEmpty() ? "Ментор" : combined;
+    }
 
     private String safeAvatarUrl(String avatarKey) {
         if (avatarKey == null || avatarKey.isBlank()) {

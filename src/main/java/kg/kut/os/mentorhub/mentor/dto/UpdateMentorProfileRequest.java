@@ -2,6 +2,7 @@ package kg.kut.os.mentorhub.mentor.dto;
 
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -43,6 +44,18 @@ public class UpdateMentorProfileRequest {
     private BigDecimal pricePerHour;
 
     private Boolean isPublic;
+
+    @Size(max = 500)
+    @Pattern(regexp = "^(https?://(www\\.)?instagram\\.com/.+)?$", message = "Invalid Instagram URL")
+    private String instagramUrl;
+
+    @Size(max = 100)
+    @Pattern(regexp = "^(@?[a-zA-Z0-9_]{1,32})?$", message = "Invalid Telegram username")
+    private String telegramUsername;
+
+    @Size(max = 255)
+    @Pattern(regexp = "^([a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,})?$", message = "Invalid email format")
+    private String publicEmail;
 
     public UpdateMentorProfileRequest() {
     }
@@ -159,5 +172,29 @@ public class UpdateMentorProfileRequest {
 
     public void setPublic(Boolean aPublic) {
         isPublic = aPublic;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public void setInstagramUrl(String instagramUrl) {
+        this.instagramUrl = instagramUrl;
+    }
+
+    public String getTelegramUsername() {
+        return telegramUsername;
+    }
+
+    public void setTelegramUsername(String telegramUsername) {
+        this.telegramUsername = telegramUsername;
+    }
+
+    public String getPublicEmail() {
+        return publicEmail;
+    }
+
+    public void setPublicEmail(String publicEmail) {
+        this.publicEmail = publicEmail;
     }
 }

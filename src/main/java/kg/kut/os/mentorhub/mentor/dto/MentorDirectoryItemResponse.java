@@ -7,6 +7,7 @@ public class MentorDirectoryItemResponse {
     private Long id;
     private String firstName;
     private String lastName;
+    private String displayName;
     private String avatarUrl;
     private String headline;
     private String specialization;
@@ -37,6 +38,9 @@ public class MentorDirectoryItemResponse {
         return lastName;
     }
 
+    public String getDisplayName() {
+        return displayName;
+    }
 
     public String getAvatarUrl() {
         return avatarUrl;
@@ -103,6 +107,9 @@ public class MentorDirectoryItemResponse {
         this.lastName = lastName;
     }
 
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;

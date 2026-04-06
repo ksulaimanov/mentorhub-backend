@@ -3,7 +3,6 @@ package kg.kut.os.mentorhub.mentor.dto;
 import kg.kut.os.mentorhub.review.dto.ReviewResponse;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 public class PublicMentorProfileResponse {
@@ -11,6 +10,7 @@ public class PublicMentorProfileResponse {
     private Long id;
     private String firstName;
     private String lastName;
+    private String displayName;
     private String avatarUrl;
     private String headline;
     private String bio;
@@ -24,9 +24,12 @@ public class PublicMentorProfileResponse {
     private BigDecimal averageRating;
     private Integer lessonsCompleted;
     private int reviewCount;
-    private LocalDateTime memberSince;
+    private String memberSince;
     private boolean verified;
     private boolean hasAvailableSlots;
+    private String instagramUrl;
+    private String telegramUsername;
+    private String publicEmail;
     private List<ReviewResponse> latestReviews;
 
     public PublicMentorProfileResponse() {
@@ -42,6 +45,10 @@ public class PublicMentorProfileResponse {
 
     public String getLastName() {
         return lastName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
     }
 
     public String getAvatarUrl() {
@@ -96,7 +103,7 @@ public class PublicMentorProfileResponse {
         return reviewCount;
     }
 
-    public LocalDateTime getMemberSince() {
+    public String getMemberSince() {
         return memberSince;
     }
 
@@ -118,6 +125,10 @@ public class PublicMentorProfileResponse {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public void setAvatarUrl(String avatarUrl) {
@@ -172,7 +183,7 @@ public class PublicMentorProfileResponse {
         this.reviewCount = reviewCount;
     }
 
-    public void setMemberSince(LocalDateTime memberSince) {
+    public void setMemberSince(String memberSince) {
         this.memberSince = memberSince;
     }
 
@@ -182,6 +193,30 @@ public class PublicMentorProfileResponse {
 
     public void setHasAvailableSlots(boolean hasAvailableSlots) {
         this.hasAvailableSlots = hasAvailableSlots;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public void setInstagramUrl(String instagramUrl) {
+        this.instagramUrl = instagramUrl;
+    }
+
+    public String getTelegramUsername() {
+        return telegramUsername;
+    }
+
+    public void setTelegramUsername(String telegramUsername) {
+        this.telegramUsername = telegramUsername;
+    }
+
+    public String getPublicEmail() {
+        return publicEmail;
+    }
+
+    public void setPublicEmail(String publicEmail) {
+        this.publicEmail = publicEmail;
     }
 
     public List<ReviewResponse> getLatestReviews() {
