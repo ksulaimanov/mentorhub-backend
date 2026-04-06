@@ -69,6 +69,15 @@ public class    MentorProfile {
     @Column(nullable = false)
     private boolean verified;
 
+    @Column(name = "instagram_url", length = 500)
+    private String instagramUrl;
+
+    @Column(name = "telegram_username", length = 100)
+    private String telegramUsername;
+
+    @Column(name = "public_email", length = 255)
+    private String publicEmail;
+
     @Column(name = "is_public", nullable = false)
     private boolean isPublic;
 
@@ -179,6 +188,22 @@ public class    MentorProfile {
         return isPublic;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public String getTelegramUsername() {
+        return telegramUsername;
+    }
+
+    public String getPublicEmail() {
+        return publicEmail;
+    }
+
     public void setUser(User user) {
         this.user = user;
     }
@@ -253,5 +278,17 @@ public class    MentorProfile {
 
     public void setPublic(boolean aPublic) {
         isPublic = aPublic;
+    }
+
+    public void setInstagramUrl(String instagramUrl) {
+        this.instagramUrl = instagramUrl;
+    }
+
+    public void setTelegramUsername(String telegramUsername) {
+        this.telegramUsername = telegramUsername;
+    }
+
+    public void setPublicEmail(String publicEmail) {
+        this.publicEmail = publicEmail;
     }
 }

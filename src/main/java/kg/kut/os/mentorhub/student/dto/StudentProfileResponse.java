@@ -1,5 +1,7 @@
 package kg.kut.os.mentorhub.student.dto;
 
+import java.util.List;
+
 public class StudentProfileResponse {
 
     private Long id;
@@ -7,12 +9,18 @@ public class StudentProfileResponse {
     private String email;
     private String firstName;
     private String lastName;
+    private String displayName;
     private String avatarKey;
     private String avatarUrl;
     private String bio;
     private String timezone;
     private String phone;
     private String city;
+    private String preferredLocale;
+    private boolean profileComplete;
+    private int profileCompletenessPercent;
+    private List<String> missingFields;
+    private String memberSince;
 
     public StudentProfileResponse() {
     }
@@ -37,6 +45,10 @@ public class StudentProfileResponse {
         return lastName;
     }
 
+    public String getDisplayName() {
+        return displayName;
+    }
+
     public String getAvatarKey() {
         return avatarKey;
     }
@@ -59,6 +71,10 @@ public class StudentProfileResponse {
 
     public String getCity() {
         return city;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
     }
 
     public void setId(Long id) {
@@ -103,5 +119,45 @@ public class StudentProfileResponse {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public boolean isProfileComplete() {
+        return profileComplete;
+    }
+
+    public void setProfileComplete(boolean profileComplete) {
+        this.profileComplete = profileComplete;
+    }
+
+    public int getProfileCompletenessPercent() {
+        return profileCompletenessPercent;
+    }
+
+    public void setProfileCompletenessPercent(int profileCompletenessPercent) {
+        this.profileCompletenessPercent = profileCompletenessPercent;
+    }
+
+    public List<String> getMissingFields() {
+        return missingFields;
+    }
+
+    public void setMissingFields(List<String> missingFields) {
+        this.missingFields = missingFields;
+    }
+
+    public String getMemberSince() {
+        return memberSince;
+    }
+
+    public void setMemberSince(String memberSince) {
+        this.memberSince = memberSince;
     }
 }

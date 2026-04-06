@@ -1,7 +1,6 @@
 package kg.kut.os.mentorhub.common.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -17,9 +16,12 @@ public class WebConfig implements WebMvcConfigurer {
     private String allowedOrigins;
 
     private final String uploadDir;
+    private final String storageType;
 
-    public WebConfig(@Value("${app.storage.local.upload-dir:uploads}") String uploadDir) {
+    public WebConfig(@Value("${app.storage.local.upload-dir:uploads}") String uploadDir,
+                     @Value("${app.storage.type:local}") String storageType) {
         this.uploadDir = uploadDir;
+        this.storageType = storageType;
     }
 
     @Override
@@ -41,8 +43,11 @@ public class WebConfig implements WebMvcConfigurer {
     }
 
     @Override
-    @ConditionalOnProperty(name = "app.storage.type", havingValue = "local", matchIfMissing = true)
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // Only serve local files when storage type is "local" — in prod (GCS), skip this
+        if (!"local".equalsIgnoreCase(storageType)) {
+            return;
+        }
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
 
         registry.addResourceHandler("/uploads/**")

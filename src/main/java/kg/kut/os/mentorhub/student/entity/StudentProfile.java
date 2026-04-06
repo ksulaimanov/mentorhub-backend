@@ -95,6 +95,10 @@ public class StudentProfile {
         return city;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
     public void setUser(User user) {
         this.user = user;
     }

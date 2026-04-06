@@ -37,11 +37,10 @@ steps:
       - '--allow-unauthenticated'
       - '--set-env-vars'
       - |-
-        DB_HOST=cloudsql-db,
-        DB_PORT=5432,
         DB_NAME=${_DB_NAME},
         DB_USER=${_DB_USER},
         DB_PASSWORD=${_DB_PASSWORD},
+        CLOUD_SQL_INSTANCE=${PROJECT_ID}:us-central1:${_CLOUD_SQL_INSTANCE},
         JWT_SECRET=${_JWT_SECRET},
         MAIL_HOST=${_MAIL_HOST},
         MAIL_PORT=${_MAIL_PORT},

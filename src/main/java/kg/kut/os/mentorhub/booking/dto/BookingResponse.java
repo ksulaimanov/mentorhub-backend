@@ -20,6 +20,14 @@ public class BookingResponse {
     private BookingStatus status;
     private String studentNote;
     private String mentorNote;
+    private String mentorFirstName;
+    private String mentorLastName;
+    private String mentorAvatarUrl;
+    private String studentFirstName;
+    private String studentLastName;
+    private String studentAvatarUrl;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public BookingResponse() {
     }
@@ -76,6 +84,38 @@ public class BookingResponse {
         return mentorNote;
     }
 
+    public String getMentorFirstName() {
+        return mentorFirstName;
+    }
+
+    public String getMentorLastName() {
+        return mentorLastName;
+    }
+
+    public String getMentorAvatarUrl() {
+        return mentorAvatarUrl;
+    }
+
+    public String getStudentFirstName() {
+        return studentFirstName;
+    }
+
+    public String getStudentLastName() {
+        return studentLastName;
+    }
+
+    public String getStudentAvatarUrl() {
+        return studentAvatarUrl;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
     public void setId(Long id) {
         this.id = id;
     }
@@ -126,5 +166,37 @@ public class BookingResponse {
 
     public void setMentorNote(String mentorNote) {
         this.mentorNote = mentorNote;
+    }
+
+    public void setMentorFirstName(String mentorFirstName) {
+        this.mentorFirstName = mentorFirstName;
+    }
+
+    public void setMentorLastName(String mentorLastName) {
+        this.mentorLastName = mentorLastName;
+    }
+
+    public void setMentorAvatarUrl(String mentorAvatarUrl) {
+        this.mentorAvatarUrl = mentorAvatarUrl;
+    }
+
+    public void setStudentFirstName(String studentFirstName) {
+        this.studentFirstName = studentFirstName;
+    }
+
+    public void setStudentLastName(String studentLastName) {
+        this.studentLastName = studentLastName;
+    }
+
+    public void setStudentAvatarUrl(String studentAvatarUrl) {
+        this.studentAvatarUrl = studentAvatarUrl;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

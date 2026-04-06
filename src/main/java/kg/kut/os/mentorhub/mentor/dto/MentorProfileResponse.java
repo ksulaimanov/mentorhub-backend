@@ -1,6 +1,8 @@
 package kg.kut.os.mentorhub.mentor.dto;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
 
 public class MentorProfileResponse {
 
@@ -9,6 +11,7 @@ public class MentorProfileResponse {
     private String email;
     private String firstName;
     private String lastName;
+    private String displayName;
     private String avatarKey;
     private String avatarUrl;
     private String headline;
@@ -24,8 +27,18 @@ public class MentorProfileResponse {
     private BigDecimal pricePerHour;
     private BigDecimal averageRating;
     private Integer lessonsCompleted;
+    private int reviewCount;
     private boolean verified;
     private boolean isPublic;
+    private LocalDateTime createdAt;
+    private String memberSince;
+    private String preferredLocale;
+    private String instagramUrl;
+    private String telegramUsername;
+    private String publicEmail;
+    private boolean profileComplete;
+    private int profileCompletenessPercent;
+    private List<String> missingFields;
 
     public MentorProfileResponse() {
     }
@@ -48,6 +61,10 @@ public class MentorProfileResponse {
 
     public String getLastName() {
         return lastName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
     }
 
     public String getAvatarKey() {
@@ -110,6 +127,10 @@ public class MentorProfileResponse {
         return lessonsCompleted;
     }
 
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
     public boolean isVerified() {
         return verified;
     }
@@ -136,6 +157,10 @@ public class MentorProfileResponse {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public void setAvatarKey(String avatarKey) {
@@ -198,11 +223,87 @@ public class MentorProfileResponse {
         this.lessonsCompleted = lessonsCompleted;
     }
 
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
     public void setVerified(boolean verified) {
         this.verified = verified;
     }
 
     public void setPublic(boolean aPublic) {
         isPublic = aPublic;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public String getMemberSince() {
+        return memberSince;
+    }
+
+    public void setMemberSince(String memberSince) {
+        this.memberSince = memberSince;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public void setInstagramUrl(String instagramUrl) {
+        this.instagramUrl = instagramUrl;
+    }
+
+    public String getTelegramUsername() {
+        return telegramUsername;
+    }
+
+    public void setTelegramUsername(String telegramUsername) {
+        this.telegramUsername = telegramUsername;
+    }
+
+    public String getPublicEmail() {
+        return publicEmail;
+    }
+
+    public void setPublicEmail(String publicEmail) {
+        this.publicEmail = publicEmail;
+    }
+
+    public boolean isProfileComplete() {
+        return profileComplete;
+    }
+
+    public void setProfileComplete(boolean profileComplete) {
+        this.profileComplete = profileComplete;
+    }
+
+    public int getProfileCompletenessPercent() {
+        return profileCompletenessPercent;
+    }
+
+    public void setProfileCompletenessPercent(int profileCompletenessPercent) {
+        this.profileCompletenessPercent = profileCompletenessPercent;
+    }
+
+    public List<String> getMissingFields() {
+        return missingFields;
+    }
+
+    public void setMissingFields(List<String> missingFields) {
+        this.missingFields = missingFields;
     }
 }

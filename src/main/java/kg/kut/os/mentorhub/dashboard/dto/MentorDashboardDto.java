@@ -6,6 +6,10 @@ import java.util.List;
 
 @Data
 public class MentorDashboardDto {
+    private String displayName;
+    private String avatarUrl;
+    private boolean profileComplete;
+    private String memberSince;
     private List<UpcomingEventDto> upcomingEvents;
     private long totalBookings;
     private long completedBookings;

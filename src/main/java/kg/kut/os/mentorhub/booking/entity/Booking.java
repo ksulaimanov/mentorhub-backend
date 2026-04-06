@@ -133,6 +133,14 @@ public class Booking {
         return mentorNote;
     }
 
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
     public void setStudent(StudentProfile student) {
         this.student = student;
     }

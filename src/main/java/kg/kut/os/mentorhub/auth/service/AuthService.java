@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import kg.kut.os.mentorhub.auth.dto.*;
 import kg.kut.os.mentorhub.auth.entity.*;
 import kg.kut.os.mentorhub.auth.repository.*;
+import kg.kut.os.mentorhub.common.exception.AuthException;
 import kg.kut.os.mentorhub.common.util.LocaleUtils;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
@@ -11,10 +12,8 @@ import kg.kut.os.mentorhub.notification.EmailNotificationService;
 import kg.kut.os.mentorhub.student.entity.StudentProfile;
 import kg.kut.os.mentorhub.student.repository.StudentProfileRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Set;
@@ -85,7 +84,7 @@ public class AuthService {
         String normalizedEmail = normalizeEmail(request.getEmail());
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Пользователь с таким email не найден"));
+                .orElseThrow(AuthException::userNotFound);
 
         if (user.isEmailVerified()) {
             return;
@@ -93,24 +92,24 @@ public class AuthService {
 
         EmailVerificationCode verificationCode = emailVerificationCodeRepository
                 .findTopByUserOrderByCreatedAtDesc(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Код подтверждения не найден"));
+                .orElseThrow(AuthException::invalidCode);
 
         if (verificationCode.isUsed()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Код подтверждения уже использован");
+            throw AuthException.codeAlreadyUsed();
         }
 
         if (verificationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Срок действия кода истёк");
+            throw AuthException.codeExpired();
         }
 
         if (verificationCode.getAttempts() >= maxVerificationAttempts) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Превышено количество попыток ввода кода");
+            throw AuthException.tooManyAttempts();
         }
 
         if (!verificationCode.getCode().equals(request.getCode())) {
             verificationCode.setAttempts(verificationCode.getAttempts() + 1);
             emailVerificationCodeRepository.save(verificationCode);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Неверный код подтверждения");
+            throw AuthException.invalidCode();
         }
 
         verificationCode.setUsed(true);
@@ -125,10 +124,10 @@ public class AuthService {
         String normalizedEmail = normalizeEmail(request.getEmail());
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Пользователь с таким email не найден"));
+                .orElseThrow(AuthException::userNotFound);
 
         if (user.isEmailVerified()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email уже подтверждён");
+            throw AuthException.emailAlreadyVerified();
         }
 
         EmailVerificationCode latestCode = emailVerificationCodeRepository
@@ -137,10 +136,7 @@ public class AuthService {
 
         if (latestCode != null
                 && latestCode.getCreatedAt().plusSeconds(resendCooldownSeconds).isAfter(LocalDateTime.now())) {
-            throw new ResponseStatusException(
-                    HttpStatus.TOO_MANY_REQUESTS,
-                    "Код был отправлен недавно. Попробуйте чуть позже"
-            );
+            throw AuthException.tooManyRequests();
         }
 
         issueAndSendVerificationCode(user);
@@ -150,18 +146,18 @@ public class AuthService {
         String normalizedEmail = normalizeEmail(request.getEmail());
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Неверный email или пароль"));
+                .orElseThrow(AuthException::invalidCredentials);
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Неверный email или пароль");
+            throw AuthException.invalidCredentials();
         }
 
         if (!user.isEmailVerified() || user.getStatus() == UserStatus.PENDING_EMAIL_VERIFICATION) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email ещё не подтверждён");
+            throw AuthException.emailNotVerified();
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Аккаунт недоступен");
+            throw AuthException.accountDisabled();
         }
 
         RefreshToken refreshToken = createRefreshToken(user);
@@ -171,20 +167,20 @@ public class AuthService {
 
     public AuthResponse refresh(RefreshTokenRequest request) {
         RefreshToken refreshToken = refreshTokenRepository.findByToken(request.getRefreshToken())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Недействительный refresh token"));
+                .orElseThrow(AuthException::invalidRefreshToken);
 
         if (refreshToken.isRevoked()) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token отозван");
+            throw AuthException.refreshTokenRevoked();
         }
 
         if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Срок действия refresh token истёк");
+            throw AuthException.refreshTokenExpired();
         }
 
         User user = refreshToken.getUser();
 
         if (!user.isEmailVerified() || user.getStatus() != UserStatus.ACTIVE) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Аккаунт недоступен");
+            throw AuthException.accountDisabled();
         }
 
         return buildAuthResponse(user, refreshToken.getToken());
@@ -208,12 +204,12 @@ public class AuthService {
                 userRepository.delete(existingUser);
                 userRepository.flush();
             } else {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email уже зарегистрирован");
+                throw AuthException.emailAlreadyRegistered();
             }
         }
 
         Role role = roleRepository.findByCode(roleCode)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Роль не найдена: " + roleCode));
+                .orElseThrow(() -> new RuntimeException("Роль не найдена: " + roleCode));
 
         User user = new User();
         user.setEmail(normalizedEmail);
@@ -246,6 +242,14 @@ public class AuthService {
     }
 
     private void issueAndSendVerificationCode(User user) {
+        // Invalidate any previous unused codes
+        emailVerificationCodeRepository.findTopByUserOrderByCreatedAtDesc(user)
+                .filter(old -> !old.isUsed())
+                .ifPresent(old -> {
+                    old.setUsed(true);
+                    emailVerificationCodeRepository.save(old);
+                });
+
         String code = generateSixDigitCode();
 
         EmailVerificationCode verificationCode = new EmailVerificationCode();
@@ -314,10 +318,7 @@ public class AuthService {
 
         if (latestCode != null &&
                 latestCode.getCreatedAt().plusSeconds(resendCooldownSeconds).isAfter(LocalDateTime.now())) {
-            throw new ResponseStatusException(
-                    HttpStatus.TOO_MANY_REQUESTS,
-                    "Код был отправлен недавно. Попробуйте чуть позже"
-            );
+            throw AuthException.tooManyRequests();
         }
 
         issueAndSendPasswordResetCode(user);
@@ -327,28 +328,28 @@ public class AuthService {
         String normalizedEmail = normalizeEmail(request.getEmail());
 
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Пользователь с таким email не найден"));
+                .orElseThrow(AuthException::userNotFound);
 
         PasswordResetCode resetCode = passwordResetCodeRepository
                 .findTopByUserOrderByCreatedAtDesc(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Код сброса не найден"));
+                .orElseThrow(AuthException::invalidResetCode);
 
         if (resetCode.isUsed()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Код сброса уже использован");
+            throw AuthException.codeAlreadyUsed();
         }
 
         if (resetCode.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Срок действия кода истёк");
+            throw AuthException.codeExpired();
         }
 
         if (resetCode.getAttempts() >= maxVerificationAttempts) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Превышено количество попыток ввода кода");
+            throw AuthException.tooManyAttempts();
         }
 
         if (!resetCode.getCode().equals(request.getCode())) {
             resetCode.setAttempts(resetCode.getAttempts() + 1);
             passwordResetCodeRepository.save(resetCode);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Неверный код сброса");
+            throw AuthException.invalidResetCode();
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
@@ -361,6 +362,14 @@ public class AuthService {
     }
 
     private void issueAndSendPasswordResetCode(User user) {
+        // Invalidate any previous unused codes
+        passwordResetCodeRepository.findTopByUserOrderByCreatedAtDesc(user)
+                .filter(old -> !old.isUsed())
+                .ifPresent(old -> {
+                    old.setUsed(true);
+                    passwordResetCodeRepository.save(old);
+                });
+
         String code = generateSixDigitCode();
 
         PasswordResetCode resetCode = new PasswordResetCode();
@@ -371,7 +380,7 @@ public class AuthService {
         resetCode.setAttempts(0);
 
         passwordResetCodeRepository.save(resetCode);
-        emailNotificationService.sendPasswordResetCode(user.getEmail(), code);
+        emailNotificationService.sendPasswordResetCode(user.getEmail(), code, user.getPreferredLocale());
     }
 
     private void revokeAllRefreshTokens(User user) {

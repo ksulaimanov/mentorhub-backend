@@ -11,14 +11,14 @@ import kg.kut.os.mentorhub.auth.entity.User;
 import kg.kut.os.mentorhub.auth.repository.RoleRepository;
 import kg.kut.os.mentorhub.auth.repository.UserRepository;
 import kg.kut.os.mentorhub.common.exception.BadRequestException;
+import kg.kut.os.mentorhub.common.exception.ConflictException;
+import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import kg.kut.os.mentorhub.notification.EmailNotificationService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -52,16 +52,24 @@ public class MentorApplicationService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("Пользователь не найден"));
 
+        // Check if user is already a mentor
+        boolean alreadyMentor = user.getRoles().stream()
+                .anyMatch(r -> r.getCode() == RoleCode.ROLE_MENTOR);
+        if (alreadyMentor) {
+            throw new ConflictException("Вы уже являетесь ментором");
+        }
+
         var activeApplication = mentorApplicationRepository.findByApplicantUserAndStatusIn(
                 user,
                 Arrays.asList(MentorApplicationStatus.PENDING, MentorApplicationStatus.APPROVED)
         );
 
         if (activeApplication.isPresent()) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
-                    "Вы уже имеете активную заявку на менторство со статусом: " + activeApplication.get().getStatus()
-            );
+            MentorApplicationStatus existingStatus = activeApplication.get().getStatus();
+            String msg = existingStatus == MentorApplicationStatus.PENDING
+                    ? "У вас уже есть заявка на рассмотрении"
+                    : "Ваша заявка уже одобрена";
+            throw new ConflictException(msg);
         }
 
         MentorApplication application = new MentorApplication();
@@ -89,7 +97,7 @@ public class MentorApplicationService {
                 .orElseThrow(() -> new BadRequestException("Пользователь не найден"));
 
         MentorApplication application = mentorApplicationRepository.findFirstByApplicantUserOrderByCreatedAtDesc(user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Заявка на менторство не найдена"));
+                .orElseThrow(() -> new NotFoundException("Заявка на менторство не найдена"));
 
         return mapToApplicationStatusResponse(application);
     }
@@ -119,7 +127,7 @@ public class MentorApplicationService {
      */
     public AdminApplicationDetailView getApplicationDetail(Long applicationId) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Заявка не найдена"));
+                .orElseThrow(() -> new NotFoundException("Заявка не найдена"));
 
         return mapToAdminApplicationDetailView(application);
     }
@@ -137,7 +145,7 @@ public class MentorApplicationService {
      */
     public boolean approveApplication(Long applicationId, Long adminUserId, String adminComment) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Заявка не найдена"));
+                .orElseThrow(() -> new NotFoundException("Заявка не найдена"));
 
         // Если уже одобрена, это OK (идемпотентность)
         if (application.getStatus() == MentorApplicationStatus.APPROVED) {
@@ -145,8 +153,7 @@ public class MentorApplicationService {
         }
 
         if (application.getStatus() != MentorApplicationStatus.PENDING) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
+            throw new ConflictException(
                     "Заявка не может быть одобрена. Текущий статус: " + application.getStatus()
             );
         }
@@ -160,8 +167,7 @@ public class MentorApplicationService {
                 .anyMatch(r -> r.getCode() == RoleCode.ROLE_MENTOR);
 
         if (hasRoleMentor) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
+            throw new ConflictException(
                     "Пользователь уже имеет роль ROLE_MENTOR"
             );
         }
@@ -199,7 +205,7 @@ public class MentorApplicationService {
         }
 
         // 4. Отправить email ментору
-        emailNotificationService.sendApplicationApproved(applicantUser.getEmail(), applicantUser.getEmail());
+        emailNotificationService.sendApplicationApproved(applicantUser.getEmail(), applicantUser.getEmail(), applicantUser.getPreferredLocale());
 
         return true;
     }
@@ -214,7 +220,7 @@ public class MentorApplicationService {
      */
     public boolean rejectApplication(Long applicationId, String rejectionReason, Long adminUserId) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Заявка не найдена"));
+                .orElseThrow(() -> new NotFoundException("Заявка не найдена"));
 
         // Если уже отклонена, это OK (идемпотентность)
         if (application.getStatus() == MentorApplicationStatus.REJECTED) {
@@ -222,8 +228,7 @@ public class MentorApplicationService {
         }
 
         if (application.getStatus() != MentorApplicationStatus.PENDING) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT,
+            throw new ConflictException(
                     "Заявка не может быть отклонена. Текущий статус: " + application.getStatus()
             );
         }
@@ -242,7 +247,8 @@ public class MentorApplicationService {
         emailNotificationService.sendApplicationRejected(
                 applicantUser.getEmail(),
                 applicantUser.getEmail(),
-                rejectionReason
+                rejectionReason,
+                applicantUser.getPreferredLocale()
         );
 
         return true;

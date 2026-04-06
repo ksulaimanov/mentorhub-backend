@@ -1,5 +1,6 @@
 package kg.kut.os.mentorhub.student.dto;
 
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 public class UpdateStudentProfileRequest {
@@ -24,6 +25,9 @@ public class UpdateStudentProfileRequest {
 
     @Size(max = 100)
     private String city;
+
+    @Pattern(regexp = "^(ky|ru)$", message = "Locale must be 'ky' or 'ru'")
+    private String preferredLocale;
 
     public UpdateStudentProfileRequest() {
     }
@@ -56,6 +60,10 @@ public class UpdateStudentProfileRequest {
         return city;
     }
 
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
@@ -82,5 +90,9 @@ public class UpdateStudentProfileRequest {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
     }
 }

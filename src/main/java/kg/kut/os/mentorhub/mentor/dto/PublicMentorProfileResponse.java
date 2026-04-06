@@ -1,14 +1,16 @@
 package kg.kut.os.mentorhub.mentor.dto;
 
+import kg.kut.os.mentorhub.review.dto.ReviewResponse;
+
 import java.math.BigDecimal;
+import java.util.List;
 
 public class PublicMentorProfileResponse {
 
     private Long id;
-    private Long userId;
     private String firstName;
     private String lastName;
-    private String avatarKey;
+    private String displayName;
     private String avatarUrl;
     private String headline;
     private String bio;
@@ -18,22 +20,23 @@ public class PublicMentorProfileResponse {
     private boolean lessonFormatOffline;
     private boolean lessonFormatHybrid;
     private String city;
-    private String addressText;
-    private String meetingLink;
     private BigDecimal pricePerHour;
     private BigDecimal averageRating;
     private Integer lessonsCompleted;
+    private int reviewCount;
+    private String memberSince;
     private boolean verified;
+    private boolean hasAvailableSlots;
+    private String instagramUrl;
+    private String telegramUsername;
+    private String publicEmail;
+    private List<ReviewResponse> latestReviews;
 
     public PublicMentorProfileResponse() {
     }
 
     public Long getId() {
         return id;
-    }
-
-    public Long getUserId() {
-        return userId;
     }
 
     public String getFirstName() {
@@ -44,8 +47,8 @@ public class PublicMentorProfileResponse {
         return lastName;
     }
 
-    public String getAvatarKey() {
-        return avatarKey;
+    public String getDisplayName() {
+        return displayName;
     }
 
     public String getAvatarUrl() {
@@ -84,14 +87,6 @@ public class PublicMentorProfileResponse {
         return city;
     }
 
-    public String getAddressText() {
-        return addressText;
-    }
-
-    public String getMeetingLink() {
-        return meetingLink;
-    }
-
     public BigDecimal getPricePerHour() {
         return pricePerHour;
     }
@@ -104,16 +99,24 @@ public class PublicMentorProfileResponse {
         return lessonsCompleted;
     }
 
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
+    public String getMemberSince() {
+        return memberSince;
+    }
+
     public boolean isVerified() {
         return verified;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public boolean isHasAvailableSlots() {
+        return hasAvailableSlots;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public void setFirstName(String firstName) {
@@ -124,8 +127,8 @@ public class PublicMentorProfileResponse {
         this.lastName = lastName;
     }
 
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public void setAvatarUrl(String avatarUrl) {
@@ -164,14 +167,6 @@ public class PublicMentorProfileResponse {
         this.city = city;
     }
 
-    public void setAddressText(String addressText) {
-        this.addressText = addressText;
-    }
-
-    public void setMeetingLink(String meetingLink) {
-        this.meetingLink = meetingLink;
-    }
-
     public void setPricePerHour(BigDecimal pricePerHour) {
         this.pricePerHour = pricePerHour;
     }
@@ -184,7 +179,51 @@ public class PublicMentorProfileResponse {
         this.lessonsCompleted = lessonsCompleted;
     }
 
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
+    }
+
+    public void setMemberSince(String memberSince) {
+        this.memberSince = memberSince;
+    }
+
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public void setHasAvailableSlots(boolean hasAvailableSlots) {
+        this.hasAvailableSlots = hasAvailableSlots;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public void setInstagramUrl(String instagramUrl) {
+        this.instagramUrl = instagramUrl;
+    }
+
+    public String getTelegramUsername() {
+        return telegramUsername;
+    }
+
+    public void setTelegramUsername(String telegramUsername) {
+        this.telegramUsername = telegramUsername;
+    }
+
+    public String getPublicEmail() {
+        return publicEmail;
+    }
+
+    public void setPublicEmail(String publicEmail) {
+        this.publicEmail = publicEmail;
+    }
+
+    public List<ReviewResponse> getLatestReviews() {
+        return latestReviews;
+    }
+
+    public void setLatestReviews(List<ReviewResponse> latestReviews) {
+        this.latestReviews = latestReviews;
     }
 }

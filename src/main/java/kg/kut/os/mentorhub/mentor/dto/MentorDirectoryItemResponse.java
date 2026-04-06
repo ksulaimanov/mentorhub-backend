@@ -5,10 +5,9 @@ import java.math.BigDecimal;
 public class MentorDirectoryItemResponse {
 
     private Long id;
-    private Long userId;
     private String firstName;
     private String lastName;
-    private String avatarKey;
+    private String displayName;
     private String avatarUrl;
     private String headline;
     private String specialization;
@@ -20,6 +19,7 @@ public class MentorDirectoryItemResponse {
     private BigDecimal pricePerHour;
     private BigDecimal averageRating;
     private Integer lessonsCompleted;
+    private int reviewCount;
     private boolean verified;
 
     public MentorDirectoryItemResponse() {
@@ -29,9 +29,6 @@ public class MentorDirectoryItemResponse {
         return id;
     }
 
-    public Long getUserId() {
-        return userId;
-    }
 
     public String getFirstName() {
         return firstName;
@@ -41,8 +38,8 @@ public class MentorDirectoryItemResponse {
         return lastName;
     }
 
-    public String getAvatarKey() {
-        return avatarKey;
+    public String getDisplayName() {
+        return displayName;
     }
 
     public String getAvatarUrl() {
@@ -89,6 +86,10 @@ public class MentorDirectoryItemResponse {
         return lessonsCompleted;
     }
 
+    public int getReviewCount() {
+        return reviewCount;
+    }
+
     public boolean isVerified() {
         return verified;
     }
@@ -97,9 +98,6 @@ public class MentorDirectoryItemResponse {
         this.id = id;
     }
 
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
 
     public void setFirstName(String firstName) {
         this.firstName = firstName;
@@ -109,8 +107,8 @@ public class MentorDirectoryItemResponse {
         this.lastName = lastName;
     }
 
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public void setAvatarUrl(String avatarUrl) {
@@ -155,6 +153,10 @@ public class MentorDirectoryItemResponse {
 
     public void setLessonsCompleted(Integer lessonsCompleted) {
         this.lessonsCompleted = lessonsCompleted;
+    }
+
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
     }
 
     public void setVerified(boolean verified) {

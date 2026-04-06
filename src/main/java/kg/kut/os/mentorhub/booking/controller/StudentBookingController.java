@@ -3,8 +3,10 @@ package kg.kut.os.mentorhub.booking.controller;
 import jakarta.validation.Valid;
 import kg.kut.os.mentorhub.booking.dto.BookingResponse;
 import kg.kut.os.mentorhub.booking.dto.CreateBookingRequest;
+import kg.kut.os.mentorhub.booking.entity.BookingStatus;
 import kg.kut.os.mentorhub.booking.service.BookingService;
 import kg.kut.os.mentorhub.common.security.CurrentUserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,17 +26,21 @@ public class StudentBookingController {
 
     @PostMapping
     public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody CreateBookingRequest request) {
-        return ResponseEntity.ok(bookingService.createBooking(currentUserService.getCurrentUserId(), request));
+        BookingResponse response = bookingService.createBooking(currentUserService.getCurrentUserId(), request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<BookingResponse>> getStudentBookings() {
-        return ResponseEntity.ok(bookingService.getStudentBookings(currentUserService.getCurrentUserId()));
+    public ResponseEntity<List<BookingResponse>> getStudentBookings(
+            @RequestParam(required = false) BookingStatus status
+    ) {
+        return ResponseEntity.ok(bookingService.getStudentBookings(currentUserService.getCurrentUserId(), status));
     }
 
     @PatchMapping("/{bookingId}/cancel")
-    public ResponseEntity<Void> cancelBooking(@PathVariable Long bookingId) {
-        bookingService.cancelByStudent(currentUserService.getCurrentUserId(), bookingId);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<BookingResponse> cancelBooking(@PathVariable Long bookingId) {
+        return ResponseEntity.ok(
+                bookingService.cancelByStudent(currentUserService.getCurrentUserId(), bookingId)
+        );
     }
 }

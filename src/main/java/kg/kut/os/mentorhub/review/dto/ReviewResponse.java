@@ -11,6 +11,9 @@ public class ReviewResponse {
     private Integer rating;
     private String comment;
     private LocalDateTime createdAt;
+    private String studentFirstName;
+    private String studentLastName;
+    private String studentAvatarUrl;
 
     public ReviewResponse() {
     }
@@ -69,5 +72,29 @@ public class ReviewResponse {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getStudentFirstName() {
+        return studentFirstName;
+    }
+
+    public void setStudentFirstName(String studentFirstName) {
+        this.studentFirstName = studentFirstName;
+    }
+
+    public String getStudentLastName() {
+        return studentLastName;
+    }
+
+    public void setStudentLastName(String studentLastName) {
+        this.studentLastName = studentLastName;
+    }
+
+    public String getStudentAvatarUrl() {
+        return studentAvatarUrl;
+    }
+
+    public void setStudentAvatarUrl(String studentAvatarUrl) {
+        this.studentAvatarUrl = studentAvatarUrl;
     }
 }

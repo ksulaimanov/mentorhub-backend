@@ -1,10 +1,11 @@
 package kg.kut.os.mentorhub.mentor.controller;
 
-import kg.kut.os.mentorhub.availability.dto.AvailabilitySlotResponse;
+import kg.kut.os.mentorhub.availability.dto.PublicAvailabilitySlotResponse;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryFilter;
 import kg.kut.os.mentorhub.mentor.dto.MentorDirectoryItemResponse;
 import kg.kut.os.mentorhub.mentor.dto.PublicMentorProfileResponse;
 import kg.kut.os.mentorhub.mentor.service.PublicMentorDirectoryService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,14 +22,16 @@ public class PublicMentorDirectoryController {
     }
 
     @GetMapping
-    public ResponseEntity<List<MentorDirectoryItemResponse>> getDirectory(
+    public ResponseEntity<Page<MentorDirectoryItemResponse>> getDirectory(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String specialization,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) Boolean online,
             @RequestParam(required = false) Boolean offline,
             @RequestParam(required = false) Boolean hybrid,
-            @RequestParam(required = false) String sortBy
+            @RequestParam(required = false) String sortBy,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
     ) {
         MentorDirectoryFilter filter = new MentorDirectoryFilter();
         filter.setQuery(query);
@@ -39,7 +42,7 @@ public class PublicMentorDirectoryController {
         filter.setHybrid(hybrid);
         filter.setSortBy(sortBy);
 
-        return ResponseEntity.ok(publicMentorDirectoryService.getDirectory(filter));
+        return ResponseEntity.ok(publicMentorDirectoryService.getDirectory(filter, page, size));
     }
 
     @GetMapping("/{mentorId}")
@@ -48,7 +51,7 @@ public class PublicMentorDirectoryController {
     }
 
     @GetMapping("/{mentorId}/slots")
-    public ResponseEntity<List<AvailabilitySlotResponse>> getPublicSlots(@PathVariable Long mentorId) {
+    public ResponseEntity<List<PublicAvailabilitySlotResponse>> getPublicSlots(@PathVariable Long mentorId) {
         return ResponseEntity.ok(publicMentorDirectoryService.getPublicSlots(mentorId));
     }
 }

@@ -1,6 +1,8 @@
 package kg.kut.os.mentorhub.mentor.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
@@ -14,9 +16,6 @@ public class UpdateMentorProfileRequest {
     private String lastName;
 
     @Size(max = 255)
-    private String avatarKey;
-
-    @Size(max = 255)
     private String headline;
 
     @Size(max = 3000)
@@ -25,10 +24,12 @@ public class UpdateMentorProfileRequest {
     @Size(max = 255)
     private String specialization;
 
+    @Min(0)
     private Integer yearsExperience;
-    private boolean lessonFormatOnline;
-    private boolean lessonFormatOffline;
-    private boolean lessonFormatHybrid;
+
+    private Boolean lessonFormatOnline;
+    private Boolean lessonFormatOffline;
+    private Boolean lessonFormatHybrid;
 
     @Size(max = 100)
     private String city;
@@ -42,7 +43,19 @@ public class UpdateMentorProfileRequest {
     @DecimalMin(value = "0.0", inclusive = true)
     private BigDecimal pricePerHour;
 
-    private boolean isPublic;
+    private Boolean isPublic;
+
+    @Size(max = 500)
+    @Pattern(regexp = "^(https?://(www\\.)?instagram\\.com/.+)?$", message = "Invalid Instagram URL")
+    private String instagramUrl;
+
+    @Size(max = 100)
+    @Pattern(regexp = "^(@?[a-zA-Z0-9_]{1,32})?$", message = "Invalid Telegram username")
+    private String telegramUsername;
+
+    @Size(max = 255)
+    @Pattern(regexp = "^([a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,})?$", message = "Invalid email format")
+    private String publicEmail;
 
     public UpdateMentorProfileRequest() {
     }
@@ -55,9 +68,6 @@ public class UpdateMentorProfileRequest {
         return lastName;
     }
 
-    public String getAvatarKey() {
-        return avatarKey;
-    }
 
     public String getHeadline() {
         return headline;
@@ -75,15 +85,15 @@ public class UpdateMentorProfileRequest {
         return yearsExperience;
     }
 
-    public boolean isLessonFormatOnline() {
+    public Boolean getLessonFormatOnline() {
         return lessonFormatOnline;
     }
 
-    public boolean isLessonFormatOffline() {
+    public Boolean getLessonFormatOffline() {
         return lessonFormatOffline;
     }
 
-    public boolean isLessonFormatHybrid() {
+    public Boolean getLessonFormatHybrid() {
         return lessonFormatHybrid;
     }
 
@@ -103,7 +113,7 @@ public class UpdateMentorProfileRequest {
         return pricePerHour;
     }
 
-    public boolean isPublic() {
+    public Boolean getIsPublic() {
         return isPublic;
     }
 
@@ -115,9 +125,6 @@ public class UpdateMentorProfileRequest {
         this.lastName = lastName;
     }
 
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
-    }
 
     public void setHeadline(String headline) {
         this.headline = headline;
@@ -135,15 +142,15 @@ public class UpdateMentorProfileRequest {
         this.yearsExperience = yearsExperience;
     }
 
-    public void setLessonFormatOnline(boolean lessonFormatOnline) {
+    public void setLessonFormatOnline(Boolean lessonFormatOnline) {
         this.lessonFormatOnline = lessonFormatOnline;
     }
 
-    public void setLessonFormatOffline(boolean lessonFormatOffline) {
+    public void setLessonFormatOffline(Boolean lessonFormatOffline) {
         this.lessonFormatOffline = lessonFormatOffline;
     }
 
-    public void setLessonFormatHybrid(boolean lessonFormatHybrid) {
+    public void setLessonFormatHybrid(Boolean lessonFormatHybrid) {
         this.lessonFormatHybrid = lessonFormatHybrid;
     }
 
@@ -163,7 +170,31 @@ public class UpdateMentorProfileRequest {
         this.pricePerHour = pricePerHour;
     }
 
-    public void setPublic(boolean aPublic) {
+    public void setPublic(Boolean aPublic) {
         isPublic = aPublic;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public void setInstagramUrl(String instagramUrl) {
+        this.instagramUrl = instagramUrl;
+    }
+
+    public String getTelegramUsername() {
+        return telegramUsername;
+    }
+
+    public void setTelegramUsername(String telegramUsername) {
+        this.telegramUsername = telegramUsername;
+    }
+
+    public String getPublicEmail() {
+        return publicEmail;
+    }
+
+    public void setPublicEmail(String publicEmail) {
+        this.publicEmail = publicEmail;
     }
 }
