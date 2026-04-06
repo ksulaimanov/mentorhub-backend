@@ -15,6 +15,7 @@ import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import kg.kut.os.mentorhub.review.repository.ReviewRepository;
 import kg.kut.os.mentorhub.student.entity.StudentProfile;
+import kg.kut.os.mentorhub.student.repository.StudentProfileRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -41,6 +43,7 @@ public class DashboardService {
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final MentorProfileRepository mentorProfileRepository;
+    private final StudentProfileRepository studentProfileRepository;
     private final ReviewRepository reviewRepository;
     private final StorageService storageService;
 
@@ -48,12 +51,14 @@ public class DashboardService {
             BookingRepository bookingRepository,
             UserRepository userRepository,
             MentorProfileRepository mentorProfileRepository,
+            StudentProfileRepository studentProfileRepository,
             ReviewRepository reviewRepository,
             StorageService storageService
     ) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
         this.mentorProfileRepository = mentorProfileRepository;
+        this.studentProfileRepository = studentProfileRepository;
         this.reviewRepository = reviewRepository;
         this.storageService = storageService;
     }
@@ -76,6 +81,21 @@ public class DashboardService {
         Map<Long, Long> bookedCountBySlot = batchBookedCounts(upcoming);
 
         StudentDashboardDto dto = new StudentDashboardDto();
+
+        // Greeting data so frontend can render personalized header without extra call
+        studentProfileRepository.findByUserId(studentUserId).ifPresentOrElse(sp -> {
+            dto.setDisplayName(buildDisplayName(sp.getFirstName(), sp.getLastName(), sp.getUser().getEmail()));
+            dto.setAvatarUrl(safeAvatarUrl(sp.getAvatarKey()));
+            dto.setProfileComplete(isStudentProfileComplete(sp));
+            dto.setMissingFields(computeStudentMissingFields(sp));
+            dto.setMemberSince(sp.getCreatedAt() != null ? sp.getCreatedAt().toString() : null);
+        }, () -> {
+            // Profile not yet created — fallback to email
+            userRepository.findById(studentUserId).ifPresent(u -> dto.setDisplayName(u.getEmail()));
+            dto.setProfileComplete(false);
+            dto.setMissingFields(List.of("firstName", "lastName", "bio", "avatar"));
+        });
+
         dto.setUpcomingEvents(upcoming.stream()
                 .map(b -> toUpcomingEventDto(b, bookedCountBySlot))
                 .toList());
@@ -113,6 +133,18 @@ public class DashboardService {
         Map<Long, Long> bookedCountBySlot = batchBookedCounts(upcoming);
 
         MentorDashboardDto dto = new MentorDashboardDto();
+
+        // Greeting data + profile completeness nudge
+        if (mentorProfile != null) {
+            dto.setDisplayName(buildDisplayName(mentorProfile.getFirstName(), mentorProfile.getLastName(), mentorProfile.getUser().getEmail()));
+            dto.setAvatarUrl(safeAvatarUrl(mentorProfile.getAvatarKey()));
+            dto.setProfileComplete(isMentorProfileComplete(mentorProfile));
+            dto.setMemberSince(mentorProfile.getCreatedAt() != null ? mentorProfile.getCreatedAt().toString() : null);
+        } else {
+            // Profile not yet created — fallback to email
+            userRepository.findById(mentorUserId).ifPresent(u -> dto.setDisplayName(u.getEmail()));
+        }
+
         dto.setUpcomingEvents(upcoming.stream()
                 .map(b -> toUpcomingEventDto(b, bookedCountBySlot))
                 .toList());
@@ -214,5 +246,45 @@ public class DashboardService {
 
     private String trim(String s) {
         return s != null ? s.trim() : "";
+    }
+
+    private String buildDisplayName(String firstName, String lastName, String email) {
+        String combined = (trim(firstName) + " " + trim(lastName)).trim();
+        return combined.isEmpty() ? email : combined;
+    }
+
+    private String safeAvatarUrl(String avatarKey) {
+        if (avatarKey == null || avatarKey.isBlank()) return null;
+        return storageService.buildPublicUrl(avatarKey);
+    }
+
+    private boolean isMentorProfileComplete(MentorProfile p) {
+        return hasText(p.getFirstName())
+                && hasText(p.getLastName())
+                && hasText(p.getHeadline())
+                && hasText(p.getBio())
+                && hasText(p.getSpecialization())
+                && (p.isLessonFormatOnline() || p.isLessonFormatOffline() || p.isLessonFormatHybrid())
+                && p.getAvatarKey() != null && !p.getAvatarKey().isBlank();
+    }
+
+    private boolean isStudentProfileComplete(StudentProfile p) {
+        return hasText(p.getFirstName())
+                && hasText(p.getLastName())
+                && hasText(p.getBio())
+                && p.getAvatarKey() != null && !p.getAvatarKey().isBlank();
+    }
+
+    private List<String> computeStudentMissingFields(StudentProfile p) {
+        List<String> missing = new ArrayList<>();
+        if (!hasText(p.getFirstName())) missing.add("firstName");
+        if (!hasText(p.getLastName())) missing.add("lastName");
+        if (!hasText(p.getBio())) missing.add("bio");
+        if (p.getAvatarKey() == null || p.getAvatarKey().isBlank()) missing.add("avatar");
+        return missing;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }
