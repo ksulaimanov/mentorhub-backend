@@ -19,8 +19,6 @@ echo "Region: $REGION"
 # Load environment variables from Secret Manager
 echo "📝 Loading secrets from Secret Manager..."
 
-DB_HOST=$(gcloud secrets versions access latest --secret="${ENVIRONMENT}-db-host")
-DB_PORT=$(gcloud secrets versions access latest --secret="${ENVIRONMENT}-db-port")
 DB_NAME=$(gcloud secrets versions access latest --secret="${ENVIRONMENT}-db-name")
 DB_USER=$(gcloud secrets versions access latest --secret="${ENVIRONMENT}-db-user")
 DB_PASSWORD=$(gcloud secrets versions access latest --secret="${ENVIRONMENT}-db-password")
@@ -54,7 +52,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --timeout 60 \
   --max-instances 100 \
   --allow-unauthenticated \
-  --set-env-vars "DB_HOST=${DB_HOST},DB_PORT=${DB_PORT},DB_NAME=${DB_NAME},DB_USER=${DB_USER},DB_PASSWORD=${DB_PASSWORD},JWT_SECRET=${JWT_SECRET},MAIL_HOST=${MAIL_HOST},MAIL_PORT=${MAIL_PORT},MAIL_USERNAME=${MAIL_USERNAME},MAIL_PASSWORD=${MAIL_PASSWORD},MAIL_FROM=${MAIL_FROM},STORAGE_TYPE=gcs,GCS_BUCKET_NAME=${GCS_BUCKET_NAME},GCS_PUBLIC_BASE_URL=${GCS_PUBLIC_BASE_URL},CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}" \
+  --set-env-vars "DB_NAME=${DB_NAME},DB_USER=${DB_USER},DB_PASSWORD=${DB_PASSWORD},CLOUD_SQL_INSTANCE=${PROJECT_ID}:${REGION}:${CLOUD_SQL_INSTANCE},JWT_SECRET=${JWT_SECRET},MAIL_HOST=${MAIL_HOST},MAIL_PORT=${MAIL_PORT},MAIL_USERNAME=${MAIL_USERNAME},MAIL_PASSWORD=${MAIL_PASSWORD},MAIL_FROM=${MAIL_FROM},MAIL_ENABLED=true,STORAGE_TYPE=gcs,GCS_BUCKET_NAME=${GCS_BUCKET_NAME},GCS_PUBLIC_BASE_URL=${GCS_PUBLIC_BASE_URL},CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}" \
   --add-cloudsql-instances "${PROJECT_ID}:${REGION}:${CLOUD_SQL_INSTANCE}" \
   --service-account="mentorhub-backend-sa@${PROJECT_ID}.iam.gserviceaccount.com"
 

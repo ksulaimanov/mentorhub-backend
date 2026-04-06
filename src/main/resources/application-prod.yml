@@ -9,7 +9,7 @@ spring:
     name: mentorhub-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql:///${DB_NAME:mentorhub}?cloudSqlInstance=${CLOUD_SQL_INSTANCE}&socketFactory=com.google.cloud.sql.postgres.SocketFactory}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     hikari:
@@ -89,7 +89,7 @@ logging:
 app:
   mail:
     from: ${MAIL_FROM:no-reply@mentorhub.local}
-    enabled: ${MAIL_ENABLED:false}
+    enabled: ${MAIL_ENABLED:true}
 
   jwt:
     secret: ${JWT_SECRET}
