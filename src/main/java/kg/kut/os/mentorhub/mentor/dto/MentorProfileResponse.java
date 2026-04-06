@@ -11,6 +11,8 @@ public class MentorProfileResponse {
     private String email;
     private String firstName;
     private String lastName;
+    private String displayName;
+    private String avatarKey;
     private String avatarUrl;
     private String headline;
     private String bio;
@@ -29,7 +31,13 @@ public class MentorProfileResponse {
     private boolean verified;
     private boolean isPublic;
     private LocalDateTime createdAt;
+    private String memberSince;
+    private String preferredLocale;
+    private String instagramUrl;
+    private String telegramUsername;
+    private String publicEmail;
     private boolean profileComplete;
+    private int profileCompletenessPercent;
     private List<String> missingFields;
 
     public MentorProfileResponse() {
@@ -55,6 +63,13 @@ public class MentorProfileResponse {
         return lastName;
     }
 
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public String getAvatarKey() {
+        return avatarKey;
+    }
 
     public String getAvatarUrl() {
         return avatarUrl;
@@ -144,6 +159,13 @@ public class MentorProfileResponse {
         this.lastName = lastName;
     }
 
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void setAvatarKey(String avatarKey) {
+        this.avatarKey = avatarKey;
+    }
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
@@ -221,12 +243,60 @@ public class MentorProfileResponse {
         this.createdAt = createdAt;
     }
 
+    public String getMemberSince() {
+        return memberSince;
+    }
+
+    public void setMemberSince(String memberSince) {
+        this.memberSince = memberSince;
+    }
+
+    public String getPreferredLocale() {
+        return preferredLocale;
+    }
+
+    public void setPreferredLocale(String preferredLocale) {
+        this.preferredLocale = preferredLocale;
+    }
+
+    public String getInstagramUrl() {
+        return instagramUrl;
+    }
+
+    public void setInstagramUrl(String instagramUrl) {
+        this.instagramUrl = instagramUrl;
+    }
+
+    public String getTelegramUsername() {
+        return telegramUsername;
+    }
+
+    public void setTelegramUsername(String telegramUsername) {
+        this.telegramUsername = telegramUsername;
+    }
+
+    public String getPublicEmail() {
+        return publicEmail;
+    }
+
+    public void setPublicEmail(String publicEmail) {
+        this.publicEmail = publicEmail;
+    }
+
     public boolean isProfileComplete() {
         return profileComplete;
     }
 
     public void setProfileComplete(boolean profileComplete) {
         this.profileComplete = profileComplete;
+    }
+
+    public int getProfileCompletenessPercent() {
+        return profileCompletenessPercent;
+    }
+
+    public void setProfileCompletenessPercent(int profileCompletenessPercent) {
+        this.profileCompletenessPercent = profileCompletenessPercent;
     }
 
     public List<String> getMissingFields() {

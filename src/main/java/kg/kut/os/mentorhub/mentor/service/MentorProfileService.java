@@ -17,6 +17,8 @@ import java.util.List;
 @Transactional
 public class MentorProfileService {
 
+    private static final int MENTOR_TOTAL_FIELDS = 7; // firstName, lastName, headline, bio, specialization, lessonFormat, avatar
+
     private final MentorProfileRepository mentorProfileRepository;
     private final ReviewRepository reviewRepository;
     private final StorageService storageService;
@@ -109,6 +111,21 @@ public class MentorProfileService {
         if (request.getIsPublic() != null) {
             profile.setPublic(request.getIsPublic());
         }
+        if (request.getInstagramUrl() != null) {
+            profile.setInstagramUrl(request.getInstagramUrl().isBlank() ? null : request.getInstagramUrl().trim());
+        }
+        if (request.getTelegramUsername() != null) {
+            String tg = request.getTelegramUsername().trim();
+            if (tg.isBlank()) {
+                profile.setTelegramUsername(null);
+            } else {
+                // Normalize: strip leading @ for consistent storage
+                profile.setTelegramUsername(tg.startsWith("@") ? tg.substring(1) : tg);
+            }
+        }
+        if (request.getPublicEmail() != null) {
+            profile.setPublicEmail(request.getPublicEmail().isBlank() ? null : request.getPublicEmail().trim().toLowerCase());
+        }
     }
 
     private MentorProfileResponse map(MentorProfile profile) {
@@ -118,7 +135,9 @@ public class MentorProfileService {
         response.setEmail(profile.getUser().getEmail());
         response.setFirstName(profile.getFirstName());
         response.setLastName(profile.getLastName());
+        response.setDisplayName(buildDisplayName(profile));
 
+        response.setAvatarKey(profile.getAvatarKey());
         response.setAvatarUrl(storageService.buildPublicUrl(profile.getAvatarKey()));
 
         response.setHeadline(profile.getHeadline());
@@ -138,12 +157,26 @@ public class MentorProfileService {
         response.setVerified(profile.isVerified());
         response.setPublic(profile.isPublic());
         response.setCreatedAt(profile.getCreatedAt());
+        response.setMemberSince(profile.getCreatedAt() != null ? profile.getCreatedAt().toString() : null);
+        response.setPreferredLocale(profile.getUser().getPreferredLocale());
+        response.setInstagramUrl(profile.getInstagramUrl());
+        response.setTelegramUsername(profile.getTelegramUsername());
+        response.setPublicEmail(profile.getPublicEmail());
 
         // Profile completeness signals for frontend
-        response.setProfileComplete(isProfileComplete(profile));
-        response.setMissingFields(computeMissingFields(profile));
+        List<String> missing = computeMissingFields(profile);
+        response.setProfileComplete(missing.isEmpty());
+        response.setMissingFields(missing);
+        response.setProfileCompletenessPercent(computeCompletenessPercent(missing, MENTOR_TOTAL_FIELDS));
 
         return response;
+    }
+
+    private String buildDisplayName(MentorProfile profile) {
+        String first = profile.getFirstName() != null ? profile.getFirstName() : "";
+        String last = profile.getLastName() != null ? profile.getLastName() : "";
+        String combined = (first + " " + last).trim();
+        return combined.isEmpty() ? profile.getUser().getEmail() : combined;
     }
 
     private boolean isProfileComplete(MentorProfile p) {
@@ -152,7 +185,8 @@ public class MentorProfileService {
                 && hasText(p.getHeadline())
                 && hasText(p.getBio())
                 && hasText(p.getSpecialization())
-                && (p.isLessonFormatOnline() || p.isLessonFormatOffline() || p.isLessonFormatHybrid());
+                && (p.isLessonFormatOnline() || p.isLessonFormatOffline() || p.isLessonFormatHybrid())
+                && p.getAvatarKey() != null && !p.getAvatarKey().isBlank();
     }
 
     private List<String> computeMissingFields(MentorProfile p) {
@@ -165,7 +199,13 @@ public class MentorProfileService {
         if (!p.isLessonFormatOnline() && !p.isLessonFormatOffline() && !p.isLessonFormatHybrid()) {
             missing.add("lessonFormat");
         }
+        if (p.getAvatarKey() == null || p.getAvatarKey().isBlank()) missing.add("avatar");
         return missing;
+    }
+
+    private int computeCompletenessPercent(List<String> missingFields, int totalFields) {
+        if (totalFields <= 0) return 100;
+        return (int) Math.round(((double) (totalFields - missingFields.size()) / totalFields) * 100);
     }
 
     private boolean hasText(String value) {
