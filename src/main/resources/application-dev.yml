@@ -1,0 +1,9 @@
+# ── Dev-only settings ──────────────────────────────────────────────
+# Activated with: spring.profiles.active=dev
+# This profile seeds a local admin account on startup.
+
+app:
+  admin:
+    email: admin@mentorhub.local
+    password: Admin123!
+
