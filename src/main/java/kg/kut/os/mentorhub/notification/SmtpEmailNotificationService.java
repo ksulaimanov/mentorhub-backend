@@ -7,9 +7,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +31,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         this.fromEmail = fromEmail;
     }
 
+    @Async
     @Override
     public void sendEmailVerificationCode(String toEmail, String code, String locale) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -46,10 +46,6 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
             log.info("Verification email sent to {} (locale={})", toEmail, locale);
         } catch (MailException ex) {
             log.error("Failed to send verification email to {}", toEmail, ex);
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Не удалось отправить письмо с кодом подтверждения"
-            );
         }
     }
 
@@ -87,6 +83,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
                 """.formatted(code);
     }
 
+    @Async
     @Override
     public void sendPasswordResetCode(String toEmail, String code, String locale) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -101,10 +98,6 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
             log.info("Password reset email sent to {} (locale={})", toEmail, locale);
         } catch (MailException ex) {
             log.error("Failed to send password reset email to {}", toEmail, ex);
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Не удалось отправить письмо для сброса пароля"
-            );
         }
     }
 
@@ -142,6 +135,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
             """.formatted(code);
     }
 
+    @Async
     @Override
     public void sendApplicationApproved(String toEmail, String userName, String locale) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -156,10 +150,6 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
             log.info("Application approved email sent to {} (locale={})", toEmail, locale);
         } catch (MailException ex) {
             log.error("Failed to send application approved email to {}", toEmail, ex);
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Не удалось отправить письмо об одобрении заявки"
-            );
         }
     }
 
@@ -199,6 +189,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
             """.formatted(userName);
     }
 
+    @Async
     @Override
     public void sendApplicationRejected(String toEmail, String userName, String rejectionReason, String locale) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -215,10 +206,6 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
             log.info("Application rejected email sent to {} (locale={})", toEmail, locale);
         } catch (MailException ex) {
             log.error("Failed to send application rejected email to {}", toEmail, ex);
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Не удалось отправить письмо об отклонении заявки"
-            );
         }
     }
 
