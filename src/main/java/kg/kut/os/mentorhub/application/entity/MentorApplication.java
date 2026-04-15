@@ -157,4 +157,3 @@ public class MentorApplication {
         this.adminComment = adminComment;
     }
 }
-

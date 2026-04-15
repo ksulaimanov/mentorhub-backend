@@ -21,7 +21,7 @@ public interface MentorApplicationRepository extends JpaRepository<MentorApplica
     /**
      * Найти заявку со статусом, отличным от REJECTED (PENDING или APPROVED)
      */
-    Optional<MentorApplication> findByApplicantUserAndStatusIn(User user, java.util.List<MentorApplicationStatus> statuses);
+    Optional<MentorApplication> findFirstByApplicantUserAndStatusIn(User user, java.util.List<MentorApplicationStatus> statuses);
 
     /**
      * Получить все заявки с определённым статусом (paginated)

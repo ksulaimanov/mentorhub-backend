@@ -15,38 +15,43 @@ import kg.kut.os.mentorhub.common.exception.ConflictException;
 import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
-import kg.kut.os.mentorhub.notification.EmailNotificationService;
+import kg.kut.os.mentorhub.application.event.ApplicationApprovedEvent;
+import kg.kut.os.mentorhub.application.event.ApplicationRejectedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 public class MentorApplicationService {
 
+    private static final Logger log = LoggerFactory.getLogger(MentorApplicationService.class);
+
     private final MentorApplicationRepository mentorApplicationRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final MentorProfileRepository mentorProfileRepository;
-    private final EmailNotificationService emailNotificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MentorApplicationService(
             MentorApplicationRepository mentorApplicationRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
             MentorProfileRepository mentorProfileRepository,
-            EmailNotificationService emailNotificationService
+            ApplicationEventPublisher eventPublisher
     ) {
         this.mentorApplicationRepository = mentorApplicationRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.mentorProfileRepository = mentorProfileRepository;
-        this.emailNotificationService = emailNotificationService;
+        this.eventPublisher = eventPublisher;
     }
-
 
     public ApplicationStatusResponse submitApplication(Long userId, SubmitApplicationRequest request) {
         User user = userRepository.findById(userId)
@@ -56,16 +61,18 @@ public class MentorApplicationService {
         boolean alreadyMentor = user.getRoles().stream()
                 .anyMatch(r -> r.getCode() == RoleCode.ROLE_MENTOR);
         if (alreadyMentor) {
+            log.warn("User {} tried to submit mentor application but is already a mentor", userId);
             throw new ConflictException("Вы уже являетесь ментором");
         }
 
-        var activeApplication = mentorApplicationRepository.findByApplicantUserAndStatusIn(
+        var activeApplication = mentorApplicationRepository.findFirstByApplicantUserAndStatusIn(
                 user,
                 Arrays.asList(MentorApplicationStatus.PENDING, MentorApplicationStatus.APPROVED)
         );
 
         if (activeApplication.isPresent()) {
             MentorApplicationStatus existingStatus = activeApplication.get().getStatus();
+            log.warn("duplicate_application_detected userId={} status={}", userId, existingStatus);
             String msg = existingStatus == MentorApplicationStatus.PENDING
                     ? "У вас уже есть заявка на рассмотрении"
                     : "Ваша заявка уже одобрена";
@@ -81,8 +88,7 @@ public class MentorApplicationService {
 
         MentorApplication savedApplication = mentorApplicationRepository.save(application);
 
-        // Отправить email администратору (опционально, можно добавить позже)
-        // emailNotificationService.sendApplicationReceived(user.getEmail(), user.getEmail());
+        log.info("mentor_application_submitted userId={} applicationId={}", userId, savedApplication.getId());
 
         return mapToApplicationStatusResponse(savedApplication);
     }
@@ -153,6 +159,7 @@ public class MentorApplicationService {
         }
 
         if (application.getStatus() != MentorApplicationStatus.PENDING) {
+            log.warn("admin_approval_failed adminId={} applicationId={} reason=invalid_status status={}", adminUserId, applicationId, application.getStatus());
             throw new ConflictException(
                     "Заявка не может быть одобрена. Текущий статус: " + application.getStatus()
             );
@@ -167,6 +174,7 @@ public class MentorApplicationService {
                 .anyMatch(r -> r.getCode() == RoleCode.ROLE_MENTOR);
 
         if (hasRoleMentor) {
+            log.warn("admin_approval_failed adminId={} applicationId={} reason=already_mentor", adminUserId, applicationId);
             throw new ConflictException(
                     "Пользователь уже имеет роль ROLE_MENTOR"
             );
@@ -204,8 +212,9 @@ public class MentorApplicationService {
             mentorProfileRepository.save(mentorProfile);
         }
 
-        // 4. Отправить email ментору
-        emailNotificationService.sendApplicationApproved(applicantUser.getEmail(), applicantUser.getEmail(), applicantUser.getPreferredLocale());
+        // 4. Fire domain event to trigger email async
+        eventPublisher.publishEvent(new ApplicationApprovedEvent(this, applicantUser.getEmail(), applicantUser.getPreferredLocale()));
+        log.info("mentor_application_approved adminUserId={} applicationId={}", adminUserId, applicationId);
 
         return true;
     }
@@ -228,6 +237,7 @@ public class MentorApplicationService {
         }
 
         if (application.getStatus() != MentorApplicationStatus.PENDING) {
+            log.warn("Admin {} attempted to reject application {} that is in status {}", adminUserId, applicationId, application.getStatus());
             throw new ConflictException(
                     "Заявка не может быть отклонена. Текущий статус: " + application.getStatus()
             );
@@ -242,18 +252,14 @@ public class MentorApplicationService {
         application.setReviewedAt(LocalDateTime.now());
         mentorApplicationRepository.save(application);
 
-        // Отправить email заявителю
+        // Отправить email заявителю (через event)
         User applicantUser = application.getApplicantUser();
-        emailNotificationService.sendApplicationRejected(
-                applicantUser.getEmail(),
-                applicantUser.getEmail(),
-                rejectionReason,
-                applicantUser.getPreferredLocale()
-        );
+        eventPublisher.publishEvent(new ApplicationRejectedEvent(this, applicantUser.getEmail(), applicantUser.getPreferredLocale(), rejectionReason));
+
+        log.info("Admin {} successfully rejected mentor application ID={} with reason '{}'", adminUserId, applicationId, rejectionReason);
 
         return true;
     }
-
 
     private ApplicationStatusResponse mapToApplicationStatusResponse(MentorApplication app) {
         return new ApplicationStatusResponse(
