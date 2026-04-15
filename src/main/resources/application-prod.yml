@@ -9,7 +9,7 @@ spring:
     name: mentorhub-backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql:///${DB_NAME:mentorhub}?cloudSqlInstance=${CLOUD_SQL_INSTANCE}&socketFactory=com.google.cloud.sql.postgres.SocketFactory}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql:///${DB_NAME}?cloudSqlInstance=${CLOUD_SQL_INSTANCE}&socketFactory=com.google.cloud.sql.postgres.SocketFactory}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     hikari:
@@ -33,10 +33,10 @@ spring:
         order_updates: true
 
   mail:
-    host: ${MAIL_HOST:}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         smtp:
@@ -59,9 +59,9 @@ spring:
 
   web:
     cors:
-      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173}
+      allowed-origins: ${CORS_ALLOWED_ORIGINS}
       allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
-      allowed-headers: '*'
+      allowed-headers: Authorization,Content-Type,Accept,X-Requested-With
       allow-credentials: true
       max-age: 3600
 
@@ -88,8 +88,8 @@ logging:
 
 app:
   mail:
-    from: ${MAIL_FROM:no-reply@mentorhub.local}
-    enabled: ${MAIL_ENABLED:true}
+    from: ${MAIL_FROM}
+    enabled: ${MAIL_ENABLED}
 
   jwt:
     secret: ${JWT_SECRET}
@@ -102,19 +102,27 @@ app:
     max-attempts: 5
 
   storage:
-    type: ${STORAGE_TYPE:gcs}
+    type: ${STORAGE_TYPE}
     gcs:
-      bucket-name: ${GCS_BUCKET_NAME:}
-      public-base-url: ${GCS_PUBLIC_BASE_URL:}
+      bucket-name: ${GCS_BUCKET_NAME}
+      public-base-url: ${GCS_PUBLIC_BASE_URL}
       avatar-max-size-bytes: 10485760
     local:
-      upload-dir: ${APP_STORAGE_LOCAL_UPLOAD_DIR:uploads}
-      public-base-url: ${APP_STORAGE_LOCAL_PUBLIC_BASE_URL:http://localhost:8080}
+      upload-dir: ${APP_STORAGE_LOCAL_UPLOAD_DIR}
+      public-base-url: ${APP_STORAGE_LOCAL_PUBLIC_BASE_URL}
       avatar-max-size-bytes: 10485760
+
+  rate-limit:
+    requests-per-minute: 5
+    paths:
+      - /api/auth/login
+      - /api/auth/register/student
+      - /api/auth/forgot-password
+      - /api/auth/reset-password
 
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui
-    enabled: ${SWAGGER_ENABLED:false}
+    enabled: ${SWAGGER_ENABLED}
