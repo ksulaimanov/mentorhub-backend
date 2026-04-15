@@ -23,6 +23,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <jjwt.version>0.12.7</jjwt.version>
         <springdoc.version>2.8.6</springdoc.version>
+        <bucket4j.version>7.6.0</bucket4j.version>
     </properties>
 
     <dependencyManagement>
@@ -136,6 +137,12 @@
             <groupId>io.github.cdimascio</groupId>
             <artifactId>dotenv-java</artifactId>
             <version>3.0.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.vladimir-bukhtoyarov</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>${bucket4j.version}</version>
         </dependency>
 
         <dependency>
