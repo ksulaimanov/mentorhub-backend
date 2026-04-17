@@ -139,10 +139,16 @@ public class DashboardService {
             dto.setDisplayName(buildDisplayName(mentorProfile.getFirstName(), mentorProfile.getLastName(), mentorProfile.getUser().getEmail()));
             dto.setAvatarUrl(safeAvatarUrl(mentorProfile.getAvatarKey()));
             dto.setProfileComplete(isMentorProfileComplete(mentorProfile));
+            List<String> missing = computeMentorMissingFields(mentorProfile);
+            dto.setMissingFields(missing);
+            dto.setProfileCompletenessPercent(computeCompletenessPercent(missing, 7));
             dto.setMemberSince(mentorProfile.getCreatedAt() != null ? mentorProfile.getCreatedAt().toString() : null);
         } else {
             // Profile not yet created — fallback to email
             userRepository.findById(mentorUserId).ifPresent(u -> dto.setDisplayName(u.getEmail()));
+            dto.setProfileComplete(false);
+            dto.setMissingFields(List.of("firstName", "lastName", "headline", "bio", "specialization", "lessonFormat", "avatar"));
+            dto.setProfileCompletenessPercent(0);
         }
 
         dto.setUpcomingEvents(upcoming.stream()
@@ -266,6 +272,25 @@ public class DashboardService {
                 && hasText(p.getSpecialization())
                 && (p.isLessonFormatOnline() || p.isLessonFormatOffline() || p.isLessonFormatHybrid())
                 && p.getAvatarKey() != null && !p.getAvatarKey().isBlank();
+    }
+
+    private List<String> computeMentorMissingFields(MentorProfile p) {
+        List<String> missing = new ArrayList<>();
+        if (!hasText(p.getFirstName())) missing.add("firstName");
+        if (!hasText(p.getLastName())) missing.add("lastName");
+        if (!hasText(p.getHeadline())) missing.add("headline");
+        if (!hasText(p.getBio())) missing.add("bio");
+        if (!hasText(p.getSpecialization())) missing.add("specialization");
+        if (!p.isLessonFormatOnline() && !p.isLessonFormatOffline() && !p.isLessonFormatHybrid()) {
+            missing.add("lessonFormat");
+        }
+        if (p.getAvatarKey() == null || p.getAvatarKey().isBlank()) missing.add("avatar");
+        return missing;
+    }
+
+    private int computeCompletenessPercent(List<String> missingFields, int totalFields) {
+        if (totalFields <= 0) return 100;
+        return (int) Math.round(((double) (totalFields - missingFields.size()) / totalFields) * 100);
     }
 
     private boolean isStudentProfileComplete(StudentProfile p) {

@@ -77,6 +77,11 @@ public class ReviewService {
                 .map(this::map);
     }
 
+    @Transactional(readOnly = true)
+    public Page<ReviewResponse> getAdminReviews(boolean lowRatingOnly, Pageable pageable) {
+        return reviewRepository.findAllReviewsForAdmin(lowRatingOnly, pageable).map(this::map);
+    }
+
     private void recalculateMentorStats(Long mentorId) {
         MentorProfile mentor = mentorProfileRepository.findById(mentorId)
                 .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));
@@ -84,11 +89,14 @@ public class ReviewService {
         BigDecimal average = reviewRepository.findAverageRatingByMentorId(mentorId);
         long completedLessons = bookingRepository.countByMentorUserIdAndStatus(
                 mentor.getUser().getId(), BookingStatus.COMPLETED);
+        long totalReviews = reviewRepository.countByMentorId(mentorId);
 
         mentor.setAverageRating(
                 average == null ? BigDecimal.ZERO : average.setScale(2, RoundingMode.HALF_UP)
         );
         mentor.setLessonsCompleted((int) completedLessons);
+        mentor.setReviewsCount((int) totalReviews);
+        mentorProfileRepository.save(mentor);
     }
 
     private ReviewResponse map(Review review) {

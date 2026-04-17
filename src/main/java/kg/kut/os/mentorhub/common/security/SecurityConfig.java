@@ -65,10 +65,11 @@ public class SecurityConfig {
                                 "/api-docs/**",
                                 "/v3/api-docs/**",
                                 "/actuator/health",
-                                "/actuator/health/**"
+                                "/actuator/health/**",
+                                "/ws-stomp/**"
                         ).permitAll()
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
-                        .requestMatchers("/api/mentor/**").hasRole("MENTOR")
+                        .requestMatchers("/api/mentor/**", "/api/mentors/**").hasRole("MENTOR")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )

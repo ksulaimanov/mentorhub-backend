@@ -162,6 +162,9 @@ public class AuthService {
 
         RefreshToken refreshToken = createRefreshToken(user);
 
+        user.setLastActiveAt(LocalDateTime.now());
+        userRepository.save(user);
+
         return buildAuthResponse(user, refreshToken.getToken());
     }
 
@@ -182,6 +185,9 @@ public class AuthService {
         if (!user.isEmailVerified() || user.getStatus() != UserStatus.ACTIVE) {
             throw AuthException.accountDisabled();
         }
+
+        user.setLastActiveAt(LocalDateTime.now());
+        userRepository.save(user);
 
         return buildAuthResponse(user, refreshToken.getToken());
     }

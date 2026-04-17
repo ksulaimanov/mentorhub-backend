@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6fc; margin: 0; padding: 0; color: #333; }
+        .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .header { background-color: #6C5ce7; padding: 20px; text-align: center; color: white; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .content { padding: 30px; line-height: 1.6; }
+        .footer { padding: 20px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; }
+        .cta-button { display: inline-block; padding: 12px 24px; background-color: #6C5ce7; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 15px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>JaiMentorship</h1>
+    </div>
+    <div class="content">
+        <p th:text="#{mail.student.greeting(${studentName})}">Здравствуйте, Студент!</p>
+
+        <p th:utext="#{mail.booking.approved.text(${mentorName})}">Ментор <strong>Имя Ментора</strong> подтвердил(а) занятие с вами.</p>
+
+        <p th:utext="#{mail.booking.time(${slotTime})}">Время занятия: <strong>01.01.2024 12:00</strong>.</p>
+
+        <p style="text-align: center;">
+            <a href="https://jaimentorship.com/dashboard/bookings" class="cta-button" th:text="#{mail.booking.action}">Перейти к моим занятиям</a>
+        </p>
+
+    </div>
+    <div class="footer">
+        &copy; <span th:text="${#dates.year(#dates.createNow())}"></span> <span th:text="#{mail.footer.rights}">JaiMentorship. All rights reserved.</span>
+    </div>
+</div>
+</body>
+</html>

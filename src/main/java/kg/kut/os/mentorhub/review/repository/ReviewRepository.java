@@ -20,6 +20,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     Page<Review> findAllByMentorIdOrderByCreatedAtDesc(Long mentorId, Pageable pageable);
 
+    @Query("SELECT r FROM Review r WHERE (:lowRatingOnly = false OR r.rating <= 2) ORDER BY r.createdAt DESC")
+    Page<Review> findAllReviewsForAdmin(@Param("lowRatingOnly") boolean lowRatingOnly, Pageable pageable);
+
     @Query("select avg(r.rating) from Review r where r.mentor.id = :mentorId")
     BigDecimal findAverageRatingByMentorId(Long mentorId);
 

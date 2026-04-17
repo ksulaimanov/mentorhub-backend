@@ -1,14 +1,18 @@
 package kg.kut.os.mentorhub.notification;
 
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -21,292 +25,158 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
     private static final DateTimeFormatter SLOT_FMT = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
     private final JavaMailSender mailSender;
+    private final TemplateEngine templateEngine;
     private final String fromEmail;
 
     public SmtpEmailNotificationService(
             JavaMailSender mailSender,
+            TemplateEngine templateEngine,
             @Value("${app.mail.from}") String fromEmail
     ) {
         this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
         this.fromEmail = fromEmail;
     }
 
-    @Async
-    @Override
-    public void sendEmailVerificationCode(String toEmail, String code, String locale) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        boolean isRussian = "ru".equals(locale);
-        message.setSubject(isRussian ? "Подтверждение email в JaiMentorship" : "JaiMentorship'та email тастыктоо");
-        message.setText(isRussian ? buildVerificationTextRu(code) : buildVerificationTextKy(code));
-
+    private void sendHtmlEmail(String toEmail, String subject, String templateName, Context context) {
         try {
-            mailSender.send(message);
-            log.info("Verification email sent to {} (locale={})", toEmail, locale);
-        } catch (MailException ex) {
-            log.error("Failed to send verification email to {}", toEmail, ex);
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+
+            String htmlContent = templateEngine.process(templateName, context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(mimeMessage);
+            log.info("HTML email sent to {}", toEmail);
+        } catch (MessagingException | MailException ex) {
+            log.error("Failed to send HTML email to {}", toEmail, ex);
         }
-    }
-
-    private String buildVerificationTextRu(String code) {
-        return """
-                Здравствуйте!
-
-                Ваш код подтверждения для JaiMentorship:
-
-                %s
-
-                Код действует 15 минут.
-
-                Если вы не регистрировались в JaiMentorship, просто проигнорируйте это письмо.
-
-                С уважением,
-                JaiMentorship
-                """.formatted(code);
-    }
-
-    private String buildVerificationTextKy(String code) {
-        return """
-                Саламатсызбы!
-
-                JaiMentorship үчүн тастыктоо кодуңуз:
-
-                %s
-
-                Код 15 мүнөт иштейт.
-
-                Эгер сиз JaiMentorship'ка катталбасаңыз, бул катты этибарга албаңыз.
-
-                Урмат менен,
-                JaiMentorship
-                """.formatted(code);
     }
 
     @Async
     @Override
-    public void sendPasswordResetCode(String toEmail, String code, String locale) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        boolean isRussian = "ru".equals(locale);
-        message.setSubject(isRussian ? "Сброс пароля в JaiMentorship" : "JaiMentorship'та сырсөздү калыбына келтирүү");
-        message.setText(isRussian ? buildPasswordResetTextRu(code) : buildPasswordResetTextKy(code));
+    public void sendEmailVerificationCode(String toEmail, String code, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Подтверждение email в JaiMentorship" : "JaiMentorship'та email тастыктоо";
 
-        try {
-            mailSender.send(message);
-            log.info("Password reset email sent to {} (locale={})", toEmail, locale);
-        } catch (MailException ex) {
-            log.error("Failed to send password reset email to {}", toEmail, ex);
-        }
-    }
+        Context context = new Context(locale);
+        context.setVariable("code", code);
 
-    private String buildPasswordResetTextRu(String code) {
-        return """
-            Здравствуйте!
-
-            Ваш код для сброса пароля в JaiMentorship:
-
-            %s
-
-            Код действует 15 минут.
-
-            Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.
-
-            С уважением,
-            JaiMentorship
-            """.formatted(code);
-    }
-
-    private String buildPasswordResetTextKy(String code) {
-        return """
-            Саламатсызбы!
-
-            JaiMentorship'та сырсөздү калыбына келтирүү кодуңуз:
-
-            %s
-
-            Код 15 мүнөт иштейт.
-
-            Эгер сиз сырсөздү калыбына келтирүүнү сурабасаңыз, бул катты этибарга албаңыз.
-
-            Урмат менен,
-            JaiMentorship
-            """.formatted(code);
+        sendHtmlEmail(toEmail, subject, "mail/confirm-email", context);
     }
 
     @Async
     @Override
-    public void sendApplicationApproved(String toEmail, String userName, String locale) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        boolean isRussian = "ru".equals(locale);
-        message.setSubject(isRussian ? "Ваша заявка на менторство одобрена!" : "Менторлукка арызыңыз кабыл алынды!");
-        message.setText(isRussian ? buildApplicationApprovedTextRu(userName) : buildApplicationApprovedTextKy(userName));
+    public void sendPasswordResetCode(String toEmail, String code, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Сброс пароля в JaiMentorship" : "JaiMentorship'та сырсөздү калыбына келтирүү";
 
-        try {
-            mailSender.send(message);
-            log.info("Application approved email sent to {} (locale={})", toEmail, locale);
-        } catch (MailException ex) {
-            log.error("Failed to send application approved email to {}", toEmail, ex);
-        }
-    }
-
-    private String buildApplicationApprovedTextRu(String userName) {
-        return """
-            Здравствуйте, %s!
-
-            Отличные новости! Ваша заявка на менторство в JaiMentorship одобрена!
-
-            Вы теперь полноценный ментор на платформе. Можно приступать к:
-            - Заполнению профиля ментора
-            - Установке доступных слотов
-            - Публикации вашего профиля
-
-            Добро пожаловать в команду менторов JaiMentorship!
-
-            С уважением,
-            JaiMentorship
-            """.formatted(userName);
-    }
-
-    private String buildApplicationApprovedTextKy(String userName) {
-        return """
-            Саламатсызбы, %s!
-
-            Жакшы жаңылык! JaiMentorship'та менторлукка арызыңыз кабыл алынды!
-
-            Сиз эми платформанын толук укуктуу менторусуз. Баштасаңыз болот:
-            - Ментор профилин толтуруу
-            - Жеткиликтүү убакытты белгилөө
-            - Профилиңизди жарыялоо
-
-            JaiMentorship менторлор командасына кош келиңиз!
-
-            Урмат менен,
-            JaiMentorship
-            """.formatted(userName);
+        Context context = new Context(locale);
+        context.setVariable("code", code);
+        // Using confirm-email for now or could create password-reset if needed
+        sendHtmlEmail(toEmail, subject, "mail/confirm-email", context);
     }
 
     @Async
     @Override
-    public void sendApplicationRejected(String toEmail, String userName, String rejectionReason, String locale) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(toEmail);
-        boolean isRussian = "ru".equals(locale);
-        message.setSubject(isRussian ? "Результат рассмотрения заявки на менторство" : "Менторлукка арызды кароонун жыйынтыгы");
-        message.setText(isRussian
-                ? buildApplicationRejectedTextRu(userName, rejectionReason)
-                : buildApplicationRejectedTextKy(userName, rejectionReason));
+    public void sendApplicationApproved(String toEmail, String userName, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Ваша заявка на менторство одобрена!" : "Менторлукка арызыңыз кабыл алынды!";
 
-        try {
-            mailSender.send(message);
-            log.info("Application rejected email sent to {} (locale={})", toEmail, locale);
-        } catch (MailException ex) {
-            log.error("Failed to send application rejected email to {}", toEmail, ex);
-        }
+        Context context = new Context(locale);
+        context.setVariable("userName", userName);
+        context.setVariable("title", subject);
+        context.setVariable("message", isRussian ?
+            "Вы теперь полноценный ментор на платформе. Можно приступать к заполнению профиля и установке доступных слотов." :
+            "Сиз эми платформанын толук укуктуу менторусуз. Профилиңизди толтуруп жана жеткиликтүү убакыттарыңызды белгилей берсеңиз болот.");
+        context.setVariable("actionUrl", "https://jaimentorship.com/mentor/profile");
+
+        sendHtmlEmail(toEmail, subject, "mail/new-notification", context);
     }
 
-    private String buildApplicationRejectedTextRu(String userName, String rejectionReason) {
-        return """
-            Здравствуйте, %s!
-
-            Спасибо за интерес к менторству в JaiMentorship. К сожалению, ваша заявка не была одобрена.
-
-            Причина отклонения:
-            %s
-
-            Вы можете подать новую заявку позже или связаться с нашей командой для получения дополнительной информации.
-
-            С уважением,
-            JaiMentorship
-            """.formatted(userName, rejectionReason);
-    }
-
-    private String buildApplicationRejectedTextKy(String userName, String rejectionReason) {
-        return """
-            Саламатсызбы, %s!
-
-            JaiMentorship'та менторлукка кызыгууңуз үчүн рахмат. Тилекке каршы, арызыңыз кабыл алынган жок.
-
-            Баш тартуу себеби:
-            %s
-
-            Кийинчерээк жаңы арыз бере аласыз же кошумча маалымат алуу үчүн биздин команда менен байланышсаңыз болот.
-
-            Урмат менен,
-            JaiMentorship
-            """.formatted(userName, rejectionReason);
-    }
-
-    // ----------------------------------------------------------------
-    // Booking lifecycle notifications
-    // ----------------------------------------------------------------
-
+    @Async
     @Override
-    public void sendBookingCreated(String toMentorEmail, String studentName, LocalDateTime startAt, LocalDateTime endAt, String locale) {
-        boolean ru = "ru".equals(locale);
-        String subject = ru ? "Новая запись на занятие — JaiMentorship" : "Жаңы сабакка жазуу — JaiMentorship";
-        String time = formatSlot(startAt, endAt);
-        String body = ru
-                ? "Здравствуйте!\n\nУ вас новая запись на занятие.\n\nУченик: %s\nВремя: %s\n\nПожалуйста, подтвердите или отклоните запись в личном кабинете.\n\nС уважением,\nJaiMentorship".formatted(studentName, time)
-                : "Саламатсызбы!\n\nСабакка жаңы жазуу бар.\n\nОкуучу: %s\nУбакыт: %s\n\nЖеке кабинетиңизде тастыктаңыз же баш тартыңыз.\n\nУрмат менен,\nJaiMentorship".formatted(studentName, time);
-        sendQuietly(toMentorEmail, subject, body, "booking-created");
+    public void sendApplicationRejected(String toEmail, String userName, String rejectionReason, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Результат рассмотрения заявки на менторство" : "Менторлукка арызды кароонун жыйынтыгы";
+
+        Context context = new Context(locale);
+        context.setVariable("userName", userName);
+        context.setVariable("title", subject);
+        context.setVariable("message", (isRussian ? "К сожалению, ваша заявка была отклонена по причине: " : "Тилекке каршы, сиздин арызыңыз төмөнкү себеп менен четке кагылды: ") + rejectionReason);
+        context.setVariable("actionUrl", "https://jaimentorship.com/");
+
+        sendHtmlEmail(toEmail, subject, "mail/new-notification", context);
     }
 
+    @Async
     @Override
-    public void sendBookingConfirmed(String toStudentEmail, String mentorName, LocalDateTime startAt, LocalDateTime endAt, String locale) {
-        boolean ru = "ru".equals(locale);
-        String subject = ru ? "Ваша запись подтверждена — JaiMentorship" : "Жазууңуз тастыкталды — JaiMentorship";
-        String time = formatSlot(startAt, endAt);
-        String body = ru
-                ? "Здравствуйте!\n\nВаша запись на занятие подтверждена.\n\nМентор: %s\nВремя: %s\n\nС уважением,\nJaiMentorship".formatted(mentorName, time)
-                : "Саламатсызбы!\n\nСабакка жазууңуз тастыкталды.\n\nМентор: %s\nУбакыт: %s\n\nУрмат менен,\nJaiMentorship".formatted(mentorName, time);
-        sendQuietly(toStudentEmail, subject, body, "booking-confirmed");
+    public void sendBookingCreated(String toMentorEmail, String studentName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Новая заявка на занятие!" : "Жаңы сабакка жазылуу!";
+        String time = startAt.format(SLOT_FMT);
+
+        Context context = new Context(locale);
+        context.setVariable("userName", "Ментор");
+        context.setVariable("title", subject);
+        context.setVariable("message", (isRussian ? "Студент " : "Студент ") + studentName + (isRussian ? " записался к вам на занятие: " : " сизге сабакка жазылды: ") + time);
+        context.setVariable("actionUrl", "https://jaimentorship.com/dashboard/bookings");
+
+        sendHtmlEmail(toMentorEmail, subject, "mail/new-notification", context);
     }
 
+    @Async
     @Override
-    public void sendBookingCancelled(String toEmail, String otherPartyName, LocalDateTime startAt, LocalDateTime endAt, String locale) {
-        boolean ru = "ru".equals(locale);
-        String subject = ru ? "Запись на занятие отменена — JaiMentorship" : "Сабакка жазуу жокко чыгарылды — JaiMentorship";
-        String time = formatSlot(startAt, endAt);
-        String body = ru
-                ? "Здравствуйте!\n\nЗапись на занятие была отменена.\n\nУчастник: %s\nВремя: %s\n\nС уважением,\nJaiMentorship".formatted(otherPartyName, time)
-                : "Саламатсызбы!\n\nСабакка жазуу жокко чыгарылды.\n\nКатышуучу: %s\nУбакыт: %s\n\nУрмат менен,\nJaiMentorship".formatted(otherPartyName, time);
-        sendQuietly(toEmail, subject, body, "booking-cancelled");
+    public void sendBookingConfirmed(String toStudentEmail, String mentorName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Занятие подтверждено!" : "Сабак тастыкталды!";
+
+        Context context = new Context(locale);
+        context.setVariable("studentName", "Студент");
+        context.setVariable("mentorName", mentorName);
+        context.setVariable("slotTime", startAt.format(SLOT_FMT));
+
+        sendHtmlEmail(toStudentEmail, subject, "mail/booking-approved", context);
     }
 
+    @Async
     @Override
-    public void sendBookingCompleted(String toStudentEmail, String mentorName, LocalDateTime startAt, LocalDateTime endAt, String locale) {
-        boolean ru = "ru".equals(locale);
-        String subject = ru ? "Занятие завершено — JaiMentorship" : "Сабак аяктады — JaiMentorship";
-        String time = formatSlot(startAt, endAt);
-        String body = ru
-                ? "Здравствуйте!\n\nВаше занятие с ментором %s завершено.\nВремя: %s\n\nНе забудьте оставить отзыв!\n\nС уважением,\nJaiMentorship".formatted(mentorName, time)
-                : "Саламатсызбы!\n\n%s ментор менен сабагыңыз аяктады.\nУбакыт: %s\n\nПикир калтырууну унутпаңыз!\n\nУрмат менен,\nJaiMentorship".formatted(mentorName, time);
-        sendQuietly(toStudentEmail, subject, body, "booking-completed");
+    public void sendBookingCancelled(String toEmail, String otherPartyName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Занятие отменено" : "Сабак жокко чыгарылды";
+
+        Context context = new Context(locale);
+        context.setVariable("userName", "Пользователь");
+        context.setVariable("title", subject);
+        context.setVariable("message", (isRussian ? "Занятие с " : "") + otherPartyName + (isRussian ? " на " : " менен ") + startAt.format(SLOT_FMT) + (isRussian ? " отменено." : " сабагы жокко чыгарылды."));
+        context.setVariable("actionUrl", "https://jaimentorship.com/dashboard/bookings");
+
+        sendHtmlEmail(toEmail, subject, "mail/new-notification", context);
     }
 
-    private String formatSlot(LocalDateTime startAt, LocalDateTime endAt) {
-        return startAt.format(SLOT_FMT) + " – " + endAt.format(SLOT_FMT);
-    }
+    @Async
+    @Override
+    public void sendBookingCompleted(String toStudentEmail, String mentorName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
+        java.util.Locale locale = new java.util.Locale(localeStr);
+        boolean isRussian = "ru".equals(localeStr);
+        String subject = isRussian ? "Урок окончен! Оставьте отзыв" : "Сабак бүттү! Пикир калтырыңыз";
 
-    /**
-     * Send email without propagating exceptions — booking actions must not fail due to mail errors.
-     */
-    private void sendQuietly(String to, String subject, String body, String eventType) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(body);
-            mailSender.send(message);
-            log.info("{} email sent to {}", eventType, to);
-        } catch (MailException ex) {
-            log.error("Failed to send {} email to {}: {}", eventType, to, ex.getMessage());
-        }
+        Context context = new Context(locale);
+        context.setVariable("userName", "Студент");
+        context.setVariable("title", subject);
+        context.setVariable("message", (isRussian ? "Надеемся, вам понравилось занятие с " : "Сизге ") + mentorName + (isRussian ? ". Пожалуйста, оставьте короткий отзыв." : " менен сабак жакты деп үмүттөнөбүз. Сураныч, пикир калтырыңыз."));
+        context.setVariable("actionUrl", "https://jaimentorship.com/dashboard/bookings"); // could be link to leave review
+
+        sendHtmlEmail(toStudentEmail, subject, "mail/new-notification", context);
     }
 }

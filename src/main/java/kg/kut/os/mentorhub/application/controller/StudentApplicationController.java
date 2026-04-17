@@ -36,9 +36,9 @@ public class StudentApplicationController {
 
     /**
      * Студент получает статус своей заявки
-     * GET /api/student/mentor-application
+     * GET /api/student/mentor-application/me
      */
-    @GetMapping
+    @GetMapping({"", "/me"})
     public ResponseEntity<ApplicationStatusResponse> getApplicationStatus(
             @CurrentUser User currentUser
     ) {

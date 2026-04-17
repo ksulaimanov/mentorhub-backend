@@ -60,6 +60,17 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             Long studentId, Long availabilitySlotId, Collection<BookingStatus> statuses
     );
 
+    // --- NEW METHODS FOR STUDENT PREVIEW ---
+    boolean existsByStudentUserIdAndMentorUserId(Long studentUserId, Long mentorUserId);
+
+    List<Booking> findAllByStudentUserIdAndMentorUserIdOrderByStartAtDesc(Long studentUserId, Long mentorUserId);
+
+
+    long countByStudentUserIdAndStatusIn(Long studentUserId, Collection<BookingStatus> statuses);
+
+    @Query("SELECT b.startAt, b.endAt FROM Booking b WHERE b.student.user.id = :studentUserId AND b.status = :status")
+    List<Object[]> findStartAndEndTimesByStudentUserIdAndStatus(@Param("studentUserId") Long studentUserId, @Param("status") BookingStatus status);
+
     // ----------------------------------------------------------------
     // Filtered booking lists for student / mentor
     // ----------------------------------------------------------------

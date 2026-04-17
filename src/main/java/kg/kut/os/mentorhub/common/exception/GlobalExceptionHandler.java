@@ -1,7 +1,7 @@
 package kg.kut.os.mentorhub.common.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
-import kg.kut.os.mentorhub.common.dto.ApiErrorResponse;
+import kg.kut.os.mentorhub.common.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiErrorResponse> handleValidation(
+    public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException ex,
             HttpServletRequest request
     ) {
@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiErrorResponse> handleMaxUploadSize(
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(
             MaxUploadSizeExceededException ex,
             HttpServletRequest request
     ) {
@@ -51,7 +51,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(UnauthorizedException.class)
-    public ResponseEntity<ApiErrorResponse> handleUnauthorized(
+    public ResponseEntity<ErrorResponse> handleUnauthorized(
             UnauthorizedException ex,
             HttpServletRequest request
     ) {
@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<ApiErrorResponse> handleAuthException(
+    public ResponseEntity<ErrorResponse> handleAuthException(
             AuthException ex,
             HttpServletRequest request
     ) {
@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiErrorResponse> handleAccessDenied(
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
             AccessDeniedException ex,
             HttpServletRequest request
     ) {
@@ -76,7 +76,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<ApiErrorResponse> handleResponseStatus(
+    public ResponseEntity<ErrorResponse> handleResponseStatus(
             ResponseStatusException ex,
             HttpServletRequest request
     ) {
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ApiErrorResponse> handleNotFound(
+    public ResponseEntity<ErrorResponse> handleNotFound(
             NotFoundException ex,
             HttpServletRequest request
     ) {
@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<ApiErrorResponse> handleBadRequest(
+    public ResponseEntity<ErrorResponse> handleBadRequest(
             BadRequestException ex,
             HttpServletRequest request
     ) {
@@ -102,7 +102,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<ApiErrorResponse> handleConflict(
+    public ResponseEntity<ErrorResponse> handleConflict(
             ConflictException ex,
             HttpServletRequest request
     ) {
@@ -110,7 +110,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ErrorResponseException.class)
-    public ResponseEntity<ApiErrorResponse> handleErrorResponseException(
+    public ResponseEntity<ErrorResponse> handleErrorResponseException(
             ErrorResponseException ex,
             HttpServletRequest request
     ) {
@@ -122,7 +122,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
-    public ResponseEntity<ApiErrorResponse> handleOptimisticLock(
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(
             ObjectOptimisticLockingFailureException ex,
             HttpServletRequest request
     ) {
@@ -132,7 +132,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ApiErrorResponse> handleDataIntegrityViolation(
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(
             DataIntegrityViolationException ex,
             HttpServletRequest request
     ) {
@@ -141,7 +141,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiErrorResponse> handleUnknown(
+    public ResponseEntity<ErrorResponse> handleUnknown(
             Exception ex,
             HttpServletRequest request
     ) {
@@ -150,21 +150,17 @@ public class GlobalExceptionHandler {
                 "Внутренняя ошибка сервера", request, null);
     }
 
-    private ResponseEntity<ApiErrorResponse> build(
+    private ResponseEntity<ErrorResponse> build(
             HttpStatus status,
             String code,
             String message,
             HttpServletRequest request,
             Map<String, String> fieldErrors
     ) {
-        ApiErrorResponse body = new ApiErrorResponse(
-                LocalDateTime.now(),
-                status.value(),
-                status.getReasonPhrase(),
+        ErrorResponse body = new ErrorResponse(
                 code,
                 message,
-                request.getRequestURI(),
-                fieldErrors
+                LocalDateTime.now()
         );
 
         return ResponseEntity.status(status).body(body);

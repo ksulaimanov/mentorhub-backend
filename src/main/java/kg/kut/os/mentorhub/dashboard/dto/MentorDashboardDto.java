@@ -9,6 +9,8 @@ public class MentorDashboardDto {
     private String displayName;
     private String avatarUrl;
     private boolean profileComplete;
+    private int profileCompletenessPercent;
+    private List<String> missingFields;
     private String memberSince;
     private List<UpcomingEventDto> upcomingEvents;
     private long totalBookings;

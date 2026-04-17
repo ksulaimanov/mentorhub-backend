@@ -12,7 +12,7 @@ import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kg.kut.os.mentorhub.common.dto.ApiErrorResponse;
+import kg.kut.os.mentorhub.common.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,14 +98,10 @@ public class RateLimitFilter implements Filter {
             response.setHeader("Retry-After", String.valueOf(waitSeconds));
             response.setHeader("X-Rate-Limit-Remaining", "0");
 
-            ApiErrorResponse errorResponse = new ApiErrorResponse(
-                    LocalDateTime.now(),
-                    429,
-                    "Too Many Requests",
+            ErrorResponse errorResponse = new ErrorResponse(
                     "RATE_LIMIT_EXCEEDED",
-                    "Слишком много запросов. Попробуйте через " + waitSeconds + " сек.",
-                    path,
-                    null
+                    "Слишком много запросов. Попробуйте через " + waitSeconds + " с.",
+                    LocalDateTime.now()
             );
 
             response.getWriter().write(objectMapper.writeValueAsString(errorResponse));

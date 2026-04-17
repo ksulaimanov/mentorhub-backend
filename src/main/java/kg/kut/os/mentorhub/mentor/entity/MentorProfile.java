@@ -63,6 +63,9 @@ public class    MentorProfile {
     @Column(name = "average_rating", nullable = false, precision = 3, scale = 2)
     private BigDecimal averageRating;
 
+    @Column(name = "reviews_count", nullable = false)
+    private Integer reviewsCount;
+
     @Column(name = "lessons_completed", nullable = false)
     private Integer lessonsCompleted;
 
@@ -94,6 +97,9 @@ public class    MentorProfile {
         updatedAt = now;
         if (averageRating == null) {
             averageRating = BigDecimal.ZERO;
+        }
+        if (reviewsCount == null) {
+            reviewsCount = 0;
         }
         if (lessonsCompleted == null) {
             lessonsCompleted = 0;
@@ -174,6 +180,10 @@ public class    MentorProfile {
 
     public BigDecimal getAverageRating() {
         return averageRating;
+    }
+
+    public Integer getReviewsCount() {
+        return reviewsCount;
     }
 
     public Integer getLessonsCompleted() {
@@ -268,6 +278,10 @@ public class    MentorProfile {
         this.averageRating = averageRating;
     }
 
+    public void setReviewsCount(Integer reviewsCount) {
+        this.reviewsCount = reviewsCount;
+    }
+
     public void setLessonsCompleted(Integer lessonsCompleted) {
         this.lessonsCompleted = lessonsCompleted;
     }
@@ -292,3 +306,4 @@ public class    MentorProfile {
         this.publicEmail = publicEmail;
     }
 }
+

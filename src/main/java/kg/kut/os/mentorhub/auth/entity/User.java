@@ -35,6 +35,9 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
@@ -90,6 +93,10 @@ public class User {
         return updatedAt;
     }
 
+    public LocalDateTime getLastActiveAt() {
+        return lastActiveAt;
+    }
+
     public Set<Role> getRoles() {
         return roles;
     }
@@ -112,6 +119,14 @@ public class User {
 
     public void setPreferredLocale(String preferredLocale) {
         this.preferredLocale = preferredLocale;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setLastActiveAt(LocalDateTime lastActiveAt) {
+        this.lastActiveAt = lastActiveAt;
     }
 
     public void setRoles(Set<Role> roles) {

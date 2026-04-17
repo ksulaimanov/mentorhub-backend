@@ -20,6 +20,7 @@ import kg.kut.os.mentorhub.application.event.ApplicationRejectedEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,6 +54,7 @@ public class MentorApplicationService {
         this.eventPublisher = eventPublisher;
     }
 
+    @PreAuthorize("hasRole('STUDENT')")
     public ApplicationStatusResponse submitApplication(Long userId, SubmitApplicationRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("Пользователь не найден"));
@@ -98,6 +100,7 @@ public class MentorApplicationService {
      * @param userId ID пользователя
      * @return Статус заявки или 404, если заявки нет
      */
+    @PreAuthorize("hasRole('STUDENT')")
     public ApplicationStatusResponse getApplicationStatus(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("Пользователь не найден"));
@@ -114,6 +117,7 @@ public class MentorApplicationService {
      * @param pageable Пагинация
      * @return Список заявок
      */
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<AdminApplicationView> listApplications(MentorApplicationStatus status, Pageable pageable) {
         Page<MentorApplication> applications;
 
@@ -131,6 +135,7 @@ public class MentorApplicationService {
      * @param applicationId ID заявки
      * @return Детали заявки
      */
+    @PreAuthorize("hasRole('ADMIN')")
     public AdminApplicationDetailView getApplicationDetail(Long applicationId) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Заявка не найдена"));
@@ -149,6 +154,7 @@ public class MentorApplicationService {
      * @param adminComment Необязательный комментарий администратора
      * @return true если заявка была одобрена, false если уже была одобрена ранее (идемпотентность)
      */
+    @PreAuthorize("hasRole('ADMIN')")
     public boolean approveApplication(Long applicationId, Long adminUserId, String adminComment) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Заявка не найдена"));
@@ -227,6 +233,7 @@ public class MentorApplicationService {
      * @param adminUserId ID администратора, отклоняющего заявку
      * @return true если заявка была отклонена, false если уже была отклонена ранее (идемпотентность)
      */
+    @PreAuthorize("hasRole('ADMIN')")
     public boolean rejectApplication(Long applicationId, String rejectionReason, Long adminUserId) {
         MentorApplication application = mentorApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Заявка не найдена"));

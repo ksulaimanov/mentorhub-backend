@@ -12,7 +12,10 @@ import kg.kut.os.mentorhub.common.exception.BadRequestException;
 import kg.kut.os.mentorhub.common.exception.NotFoundException;
 import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.entity.MentorProfile;
+import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
+import kg.kut.os.mentorhub.notification.entity.NotificationType;
 import kg.kut.os.mentorhub.notification.EmailNotificationService;
+import kg.kut.os.mentorhub.notification.service.InAppNotificationService;
 import kg.kut.os.mentorhub.student.entity.StudentProfile;
 import kg.kut.os.mentorhub.student.repository.StudentProfileRepository;
 import org.slf4j.Logger;
@@ -62,23 +65,29 @@ public class BookingService {
     );
 
     private final BookingRepository bookingRepository;
+    private final MentorAvailabilitySlotRepository availabilitySlotRepository;
     private final StudentProfileRepository studentProfileRepository;
-    private final MentorAvailabilitySlotRepository slotRepository;
+    private final MentorProfileRepository mentorProfileRepository;
     private final StorageService storageService;
     private final EmailNotificationService emailNotificationService;
+    private final InAppNotificationService inAppNotificationService;
 
     public BookingService(
             BookingRepository bookingRepository,
+            MentorAvailabilitySlotRepository availabilitySlotRepository,
             StudentProfileRepository studentProfileRepository,
-            MentorAvailabilitySlotRepository slotRepository,
+            MentorProfileRepository mentorProfileRepository,
             StorageService storageService,
-            EmailNotificationService emailNotificationService
+            EmailNotificationService emailNotificationService,
+            InAppNotificationService inAppNotificationService
     ) {
         this.bookingRepository = bookingRepository;
+        this.availabilitySlotRepository = availabilitySlotRepository;
         this.studentProfileRepository = studentProfileRepository;
-        this.slotRepository = slotRepository;
+        this.mentorProfileRepository = mentorProfileRepository;
         this.storageService = storageService;
         this.emailNotificationService = emailNotificationService;
+        this.inAppNotificationService = inAppNotificationService;
     }
 
     // ----------------------------------------------------------------
@@ -89,7 +98,7 @@ public class BookingService {
         StudentProfile student = studentProfileRepository.findByUserId(studentUserId)
                 .orElseThrow(() -> new NotFoundException("Профиль ученика не найден"));
 
-        MentorAvailabilitySlot slot = slotRepository.findByIdForUpdate(request.getAvailabilitySlotId())
+        MentorAvailabilitySlot slot = availabilitySlotRepository.findByIdForUpdate(request.getAvailabilitySlotId())
                 .orElseThrow(() -> new NotFoundException("Слот не найден"));
 
         if (!slot.isActive()) {
@@ -331,6 +340,16 @@ public class BookingService {
                     studentEmail, mentorName,
                     booking.getStartAt(), booking.getEndAt(), studentLocale
             );
+
+            // IN-APP NOTIFICATION FOR REVIEW
+            inAppNotificationService.createNotification(
+                    booking.getStudent().getUser().getId(),
+                    NotificationType.LESSON_COMPLETED,
+                    "Урок окончен!",
+                    "Оставьте отзыв о менторе " + mentorName + ", чтобы помочь другим",
+                    "/mentor/" + booking.getMentor().getId() + "?leaveReview=" + booking.getId()
+            );
+
         } catch (Exception ex) {
             log.warn("Failed to send booking-completed notification for booking {}: {}", booking.getId(), ex.getMessage());
         }
