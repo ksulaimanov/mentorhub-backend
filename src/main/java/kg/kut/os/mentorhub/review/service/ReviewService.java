@@ -82,6 +82,16 @@ public class ReviewService {
         return reviewRepository.findAllReviewsForAdmin(lowRatingOnly, pageable).map(this::map);
     }
 
+    @Transactional
+    public void deleteReview(Long reviewId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new NotFoundException("Отзыв не найден"));
+
+        Long mentorId = review.getMentor().getId();
+        reviewRepository.delete(review);
+        recalculateMentorStats(mentorId);
+    }
+
     private void recalculateMentorStats(Long mentorId) {
         MentorProfile mentor = mentorProfileRepository.findById(mentorId)
                 .orElseThrow(() -> new NotFoundException("Профиль ментора не найден"));

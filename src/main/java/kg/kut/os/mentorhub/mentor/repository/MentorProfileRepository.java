@@ -7,8 +7,9 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
-public interface MentorProfileRepository extends JpaRepository<MentorProfile, Long> {
+public interface MentorProfileRepository extends JpaRepository<MentorProfile, Long>, JpaSpecificationExecutor<MentorProfile> {
     Optional<MentorProfile> findByUserId(Long userId);
     Optional<MentorProfile> findByIdAndIsPublicTrue(Long id);
 

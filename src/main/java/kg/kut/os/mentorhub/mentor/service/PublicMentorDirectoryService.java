@@ -79,68 +79,53 @@ public class PublicMentorDirectoryService {
 
         String sanitizedSort = sanitizeSortBy(filter == null ? null : filter.getSortBy());
         Sort sort = resolveSort(sanitizedSort);
-
-        List<MentorProfile> allProfiles = mentorProfileRepository.findAllPublicWithUser(sort);
-
-        Stream<MentorProfile> stream = allProfiles.stream();
-
-        if (filter != null) {
-            if (hasText(filter.getQuery())) {
-                String query = normalize(filter.getQuery());
-                stream = stream.filter(profile ->
-                        contains(profile.getFirstName(), query)
-                                || contains(profile.getLastName(), query)
-                                || contains(profile.getHeadline(), query)
-                                || contains(profile.getSpecialization(), query)
-                );
+        PageRequest pageRequest = PageRequest.of(safePage, safeSize, sort);
+        org.springframework.data.jpa.domain.Specification<MentorProfile> spec = (root, query, cb) -> {
+            if (Long.class != query.getResultType()) {
+                root.fetch("user", jakarta.persistence.criteria.JoinType.LEFT);
             }
-
-            if (hasText(filter.getSpecialization())) {
-                String specialization = normalize(filter.getSpecialization());
-                stream = stream.filter(profile -> contains(profile.getSpecialization(), specialization));
+            java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            predicates.add(cb.isTrue(root.get("isPublic")));
+            if (filter != null) {
+                if (hasText(filter.getQuery())) {
+                    String q = "%" + filter.getQuery().toLowerCase() + "%";
+                    predicates.add(cb.or(
+                            cb.like(cb.lower(root.get("firstName")), q),
+                            cb.like(cb.lower(root.get("lastName")), q),
+                            cb.like(cb.lower(root.get("headline")), q),
+                            cb.like(cb.lower(root.get("specialization")), q)
+                    ));
+                }
+                if (hasText(filter.getSpecialization())) {
+                    predicates.add(cb.like(cb.lower(root.get("specialization")), "%" + filter.getSpecialization().toLowerCase() + "%"));
+                }
+                if (hasText(filter.getCity())) {
+                    predicates.add(cb.like(cb.lower(root.get("city")), "%" + filter.getCity().toLowerCase() + "%"));
+                }
+                if (Boolean.TRUE.equals(filter.getOnline())) {
+                    predicates.add(cb.isTrue(root.get("lessonFormatOnline")));
+                }
+                if (Boolean.TRUE.equals(filter.getOffline())) {
+                    predicates.add(cb.isTrue(root.get("lessonFormatOffline")));
+                }
+                if (Boolean.TRUE.equals(filter.getHybrid())) {
+                    predicates.add(cb.isTrue(root.get("lessonFormatHybrid")));
+                }
             }
-
-            if (hasText(filter.getCity())) {
-                String city = normalize(filter.getCity());
-                stream = stream.filter(profile -> contains(profile.getCity(), city));
-            }
-
-            if (Boolean.TRUE.equals(filter.getOnline())) {
-                stream = stream.filter(MentorProfile::isLessonFormatOnline);
-            }
-
-            if (Boolean.TRUE.equals(filter.getOffline())) {
-                stream = stream.filter(MentorProfile::isLessonFormatOffline);
-            }
-
-            if (Boolean.TRUE.equals(filter.getHybrid())) {
-                stream = stream.filter(MentorProfile::isLessonFormatHybrid);
-            }
+            return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        };
+        Page<MentorProfile> pageSlice = mentorProfileRepository.findAll(spec, pageRequest);
+        if (!pageSlice.hasContent()) {
+            return new PageImpl<>(Collections.emptyList(), pageRequest, pageSlice.getTotalElements());
         }
-
-        List<MentorProfile> filtered = stream.toList();
-        int totalElements = filtered.size();
-
-        int fromIndex = safePage * safeSize;
-        if (fromIndex >= totalElements) {
-            return new PageImpl<>(Collections.emptyList(), PageRequest.of(safePage, safeSize), totalElements);
-        }
-        int toIndex = Math.min(fromIndex + safeSize, totalElements);
-        List<MentorProfile> pageSlice = filtered.subList(fromIndex, toIndex);
-
-        // Batch review counts to avoid N+1
-        List<Long> mentorIds = pageSlice.stream().map(MentorProfile::getId).toList();
+        List<Long> mentorIds = pageSlice.getContent().stream().map(MentorProfile::getId).toList();
         Map<Long, Long> reviewCountMap = batchReviewCounts(mentorIds);
-
-        List<MentorDirectoryItemResponse> items = pageSlice.stream()
+        List<MentorDirectoryItemResponse> items = pageSlice.getContent().stream()
                 .map(profile -> mapDirectoryItem(profile, reviewCountMap))
                 .toList();
-
-        return new PageImpl<>(items, PageRequest.of(safePage, safeSize), totalElements);
+        return new PageImpl<>(items, pageRequest, pageSlice.getTotalElements());
     }
-
     private static final int LATEST_REVIEWS_LIMIT = 5;
-
     // ----------------------------------------------------------------
     // Public mentor profile
     // ----------------------------------------------------------------
@@ -378,3 +363,4 @@ public class PublicMentorDirectoryService {
         return r;
     }
 }
+
