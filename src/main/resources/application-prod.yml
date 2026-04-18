@@ -80,11 +80,11 @@ management:
 
 logging:
   level:
-    root: WARN
+    root: INFO
     kg.kut.os.mentorhub: INFO
-    org.springframework.security: WARN
-    org.springframework.web: WARN
-    org.hibernate.SQL: WARN
+    org.springframework.security: ERROR
+    org.springframework.web: ERROR
+    org.hibernate.SQL: ERROR
 
 app:
   mail:
