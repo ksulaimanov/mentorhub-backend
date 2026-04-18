@@ -19,8 +19,8 @@ public class LoggingEmailNotificationService implements EmailNotificationService
     }
 
     @Override
-    public void sendPasswordResetCode(String toEmail, String code, String locale) {
-        log.info("MAIL DISABLED. Password reset code for {} (locale={}): {}", toEmail, locale, code);
+    public void sendPasswordResetCode(String toEmail, String userName, String code, String locale) {
+        log.info("MAIL DISABLED. Password reset code for {} ({}) (locale={}): {}", toEmail, userName, locale, code);
     }
 
     @Override

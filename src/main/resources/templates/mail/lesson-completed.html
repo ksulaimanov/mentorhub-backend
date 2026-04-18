@@ -18,14 +18,14 @@
         <h1>JaiMentorship</h1>
     </div>
     <div class="content">
-        <p th:text="#{mail.student.greeting(${studentName})}">Здравствуйте, Студент!</p>
+        <p th:text="#{mail.student.greeting(${userName})}">Здравствуйте, Пользователь!</p>
 
-        <p th:utext="#{mail.booking.approved.text(${mentorName})}">Ментор <strong>Имя Ментора</strong> подтвердил(а) занятие с вами.</p>
+        <h3 th:text="${title}">Новое уведомление</h3>
 
-        <p th:utext="#{mail.booking.time(${slotTime})}">Время занятия: <strong>01.01.2024 12:00</strong>.</p>
+        <p th:text="${message}">У вас новое сообщение на платформе.</p>
 
         <p style="text-align: center;">
-            <a th:href="${actionUrl}" class="cta-button" th:text="#{mail.booking.action}">Ÿ€‚   ‚</a>
+            <a th:href="${actionUrl}" class="cta-button" th:text="#{mail.notification.action}">Посмотреть</a>
         </p>
 
     </div>

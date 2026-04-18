@@ -27,15 +27,18 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final String fromEmail;
+    private final String frontendUrl;
 
     public SmtpEmailNotificationService(
             JavaMailSender mailSender,
             TemplateEngine templateEngine,
-            @Value("${app.mail.from}") String fromEmail
+            @Value("${app.mail.from}") String fromEmail,
+            @Value("${app.frontend.url:https://jaimentorship.kutman.me}") String frontendUrl
     ) {
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
         this.fromEmail = fromEmail;
+        this.frontendUrl = frontendUrl;
     }
 
     private void sendHtmlEmail(String toEmail, String subject, String templateName, Context context) {
@@ -59,7 +62,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
     @Async
     @Override
     public void sendEmailVerificationCode(String toEmail, String code, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Подтверждение email в JaiMentorship" : "JaiMentorship'та email тастыктоо";
 
@@ -71,21 +74,28 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
 
     @Async
     @Override
-    public void sendPasswordResetCode(String toEmail, String code, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+    public void sendPasswordResetCode(String toEmail, String userName, String code, String localeStr) {
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Сброс пароля в JaiMentorship" : "JaiMentorship'та сырсөздү калыбына келтирүү";
-
         Context context = new Context(locale);
-        context.setVariable("code", code);
-        // Using confirm-email for now or could create password-reset if needed
-        sendHtmlEmail(toEmail, subject, "mail/confirm-email", context);
+        context.setVariable("userName", userName != null ? userName : (isRussian ? "Пользователь" : "Колдонуучу"));
+        context.setVariable("title", subject);
+
+        String resetUrl = frontendUrl + "/auth/reset-password?email=" + toEmail + "&code=" + code;
+
+        context.setVariable("message", isRussian ?
+                "Вы запросили сброс пароля. Ваш код для сброса: " + code + ". Вы также можете нажать на кнопку ниже для сброса:" :
+                "Сиз сырсөздү калыбына келтирүүнү сурадыңыз. Сиздин код: " + code + ". Же төмөнкү баскычты басыңыз:");
+        context.setVariable("actionUrl", resetUrl);
+
+        sendHtmlEmail(toEmail, subject, "mail/password-reset", context);
     }
 
     @Async
     @Override
     public void sendApplicationApproved(String toEmail, String userName, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Ваша заявка на менторство одобрена!" : "Менторлукка арызыңыз кабыл алынды!";
 
@@ -95,15 +105,15 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         context.setVariable("message", isRussian ?
             "Вы теперь полноценный ментор на платформе. Можно приступать к заполнению профиля и установке доступных слотов." :
             "Сиз эми платформанын толук укуктуу менторусуз. Профилиңизди толтуруп жана жеткиликтүү убакыттарыңызды белгилей берсеңиз болот.");
-        context.setVariable("actionUrl", "https://jaimentorship.com/mentor/profile");
+        context.setVariable("actionUrl", frontendUrl + "/mentor/profile");
 
-        sendHtmlEmail(toEmail, subject, "mail/new-notification", context);
+        sendHtmlEmail(toEmail, subject, "mail/application-approved", context);
     }
 
     @Async
     @Override
     public void sendApplicationRejected(String toEmail, String userName, String rejectionReason, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Результат рассмотрения заявки на менторство" : "Менторлукка арызды кароонун жыйынтыгы";
 
@@ -111,15 +121,15 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         context.setVariable("userName", userName);
         context.setVariable("title", subject);
         context.setVariable("message", (isRussian ? "К сожалению, ваша заявка была отклонена по причине: " : "Тилекке каршы, сиздин арызыңыз төмөнкү себеп менен четке кагылды: ") + rejectionReason);
-        context.setVariable("actionUrl", "https://jaimentorship.com/");
+        context.setVariable("actionUrl", frontendUrl + "/");
 
-        sendHtmlEmail(toEmail, subject, "mail/new-notification", context);
+        sendHtmlEmail(toEmail, subject, "mail/application-rejected", context);
     }
 
     @Async
     @Override
     public void sendBookingCreated(String toMentorEmail, String studentName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Новая заявка на занятие!" : "Жаңы сабакка жазылуу!";
         String time = startAt.format(SLOT_FMT);
@@ -127,16 +137,16 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         Context context = new Context(locale);
         context.setVariable("userName", "Ментор");
         context.setVariable("title", subject);
-        context.setVariable("message", (isRussian ? "Студент " : "Студент ") + studentName + (isRussian ? " записался к вам на занятие: " : " сизге сабакка жазылды: ") + time);
-        context.setVariable("actionUrl", "https://jaimentorship.com/dashboard/bookings");
+        context.setVariable("message", "Студент " + studentName + (isRussian ? " записался к вам на занятие: " : " сизге сабакка жазылды: ") + time);
+        context.setVariable("actionUrl", frontendUrl + "/dashboard/bookings");
 
-        sendHtmlEmail(toMentorEmail, subject, "mail/new-notification", context);
+        sendHtmlEmail(toMentorEmail, subject, "mail/booking-created", context);
     }
 
     @Async
     @Override
     public void sendBookingConfirmed(String toStudentEmail, String mentorName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Занятие подтверждено!" : "Сабак тастыкталды!";
 
@@ -144,6 +154,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         context.setVariable("studentName", "Студент");
         context.setVariable("mentorName", mentorName);
         context.setVariable("slotTime", startAt.format(SLOT_FMT));
+        context.setVariable("actionUrl", frontendUrl + "/dashboard/bookings");
 
         sendHtmlEmail(toStudentEmail, subject, "mail/booking-approved", context);
     }
@@ -151,7 +162,7 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
     @Async
     @Override
     public void sendBookingCancelled(String toEmail, String otherPartyName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Занятие отменено" : "Сабак жокко чыгарылды";
 
@@ -159,15 +170,15 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         context.setVariable("userName", "Пользователь");
         context.setVariable("title", subject);
         context.setVariable("message", (isRussian ? "Занятие с " : "") + otherPartyName + (isRussian ? " на " : " менен ") + startAt.format(SLOT_FMT) + (isRussian ? " отменено." : " сабагы жокко чыгарылды."));
-        context.setVariable("actionUrl", "https://jaimentorship.com/dashboard/bookings");
+        context.setVariable("actionUrl", frontendUrl + "/dashboard/bookings");
 
-        sendHtmlEmail(toEmail, subject, "mail/new-notification", context);
+        sendHtmlEmail(toEmail, subject, "mail/lesson-cancelled", context);
     }
 
     @Async
     @Override
     public void sendBookingCompleted(String toStudentEmail, String mentorName, LocalDateTime startAt, LocalDateTime endAt, String localeStr) {
-        java.util.Locale locale = new java.util.Locale(localeStr);
+        java.util.Locale locale = java.util.Locale.forLanguageTag(localeStr);
         boolean isRussian = "ru".equals(localeStr);
         String subject = isRussian ? "Урок окончен! Оставьте отзыв" : "Сабак бүттү! Пикир калтырыңыз";
 
@@ -175,8 +186,8 @@ public class SmtpEmailNotificationService implements EmailNotificationService {
         context.setVariable("userName", "Студент");
         context.setVariable("title", subject);
         context.setVariable("message", (isRussian ? "Надеемся, вам понравилось занятие с " : "Сизге ") + mentorName + (isRussian ? ". Пожалуйста, оставьте короткий отзыв." : " менен сабак жакты деп үмүттөнөбүз. Сураныч, пикир калтырыңыз."));
-        context.setVariable("actionUrl", "https://jaimentorship.com/dashboard/bookings"); // could be link to leave review
+        context.setVariable("actionUrl", frontendUrl + "/dashboard/bookings");
 
-        sendHtmlEmail(toStudentEmail, subject, "mail/new-notification", context);
+        sendHtmlEmail(toStudentEmail, subject, "mail/lesson-completed", context);
     }
 }
