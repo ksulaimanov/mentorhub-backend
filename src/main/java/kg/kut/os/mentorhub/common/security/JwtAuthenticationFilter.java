@@ -2,6 +2,7 @@ package kg.kut.os.mentorhub.common.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kg.kut.os.mentorhub.auth.service.JwtService;
@@ -36,7 +37,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
 
         return "OPTIONS".equalsIgnoreCase(method)
-                || path.startsWith("/api/auth/")
+                || path.equals("/api/auth/login")
+                || path.equals("/api/auth/register/student")
+                || path.equals("/api/auth/register/mentor")
+                || path.equals("/api/auth/verify-email")
+                || path.equals("/api/auth/resend-verification")
+                || path.equals("/api/auth/forgot-password")
+                || path.equals("/api/auth/reset-password")
+                || path.equals("/api/auth/refresh")
                 || path.startsWith("/api/public/")
                 || path.startsWith("/swagger-ui/")
                 || path.startsWith("/v3/api-docs/")
@@ -52,14 +60,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
-
-        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+        String token = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
         }
 
-        String token = authHeader.substring(7);
+        if (!StringUtils.hasText(token)) {
+            String authHeader = request.getHeader("Authorization");
+            if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+                token = authHeader.substring(7);
+            } else {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        }
 
         try {
             String email = jwtService.extractEmail(token);

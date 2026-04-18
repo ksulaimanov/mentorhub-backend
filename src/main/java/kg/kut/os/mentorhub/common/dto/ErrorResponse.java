@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class ErrorResponse {
 
+    private String code;
     private String errorCode;
     private String message;
     private LocalDateTime timestamp;
@@ -12,9 +13,18 @@ public class ErrorResponse {
     }
 
     public ErrorResponse(String errorCode, String message, LocalDateTime timestamp) {
+        this.code = errorCode;
         this.errorCode = errorCode;
         this.message = message;
         this.timestamp = timestamp;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public void setCode(String code) {
+        this.code = code;
     }
 
     public String getErrorCode() {
@@ -41,4 +51,3 @@ public class ErrorResponse {
         this.timestamp = timestamp;
     }
 }
-

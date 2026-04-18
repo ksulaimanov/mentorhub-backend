@@ -53,4 +53,10 @@ public class AdminUserController {
     ) {
         return ResponseEntity.ok(reviewService.getAdminReviews(lowRatingOnly, pageable));
     }
+
+    @DeleteMapping("/reviews/{id}")
+    public ResponseEntity<MessageResponse> deleteReview(@PathVariable Long id) {
+        reviewService.deleteReview(id);
+        return ResponseEntity.ok(new MessageResponse("Отзыв успешно удален"));
+    }
 }

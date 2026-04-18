@@ -76,9 +76,7 @@ public class AuthService {
         register(request.getEmail(), request.getPassword(), RoleCode.ROLE_STUDENT, locale);
     }
 
-    public void registerMentor(RegisterMentorRequest request) {
-        register(request.getEmail(), request.getPassword(), RoleCode.ROLE_MENTOR, LocaleUtils.DEFAULT_LOCALE);
-    }
+    // registerMentor is no longer used, removed.
 
     public void verifyEmail(VerifyEmailRequest request) {
         String normalizedEmail = normalizeEmail(request.getEmail());
@@ -186,10 +184,16 @@ public class AuthService {
             throw AuthException.accountDisabled();
         }
 
+        // Refresh Token Rotation (RTR)
+        refreshToken.setRevoked(true);
+        refreshTokenRepository.save(refreshToken);
+
+        RefreshToken newRefreshToken = createRefreshToken(user);
+
         user.setLastActiveAt(LocalDateTime.now());
         userRepository.save(user);
 
-        return buildAuthResponse(user, refreshToken.getToken());
+        return buildAuthResponse(user, newRefreshToken.getToken());
     }
 
     public void logout(LogoutRequest request) {
@@ -384,9 +388,18 @@ public class AuthService {
         resetCode.setExpiresAt(LocalDateTime.now().plusMinutes(verificationCodeExpirationMinutes));
         resetCode.setUsed(false);
         resetCode.setAttempts(0);
-
         passwordResetCodeRepository.save(resetCode);
-        emailNotificationService.sendPasswordResetCode(user.getEmail(), code, user.getPreferredLocale());
+
+        String userName = extractUserName(user);
+        emailNotificationService.sendPasswordResetCode(user.getEmail(), userName, code, user.getPreferredLocale());
+    }
+
+    private String extractUserName(User user) {
+        return studentProfileRepository.findByUserId(user.getId())
+                .map(kg.kut.os.mentorhub.student.entity.StudentProfile::getFirstName)
+                .orElseGet(() -> mentorProfileRepository.findByUserId(user.getId())
+                        .map(kg.kut.os.mentorhub.mentor.entity.MentorProfile::getFirstName)
+                        .orElse(null));
     }
 
     private void revokeAllRefreshTokens(User user) {

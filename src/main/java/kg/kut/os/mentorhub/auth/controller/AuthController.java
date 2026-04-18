@@ -2,10 +2,15 @@ package kg.kut.os.mentorhub.auth.controller;
 
 import jakarta.validation.Valid;
 import kg.kut.os.mentorhub.auth.dto.*;
+import kg.kut.os.mentorhub.auth.entity.User;
 import kg.kut.os.mentorhub.auth.service.AuthService;
+import kg.kut.os.mentorhub.auth.service.UserService;
+import kg.kut.os.mentorhub.auth.util.CookieUtils;
 import kg.kut.os.mentorhub.common.dto.MessageResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import kg.kut.os.mentorhub.common.security.CurrentUser;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -14,9 +19,13 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
+    private final CookieUtils cookieUtils;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserService userService, CookieUtils cookieUtils) {
         this.authService = authService;
+        this.userService = userService;
+        this.cookieUtils = cookieUtils;
     }
 
     @PostMapping("/register/student")
@@ -46,19 +55,52 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest request) {
+        AuthResponse tokens = authService.login(request);
+
+        var accessCookie = cookieUtils.createTokenCookie("accessToken", tokens.getAccessToken(), 3600); // 1 hr
+        var refreshCookie = cookieUtils.createTokenCookie("refreshToken", tokens.getRefreshToken(), 604800); // 7 days
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .build();
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request) {
-        return ResponseEntity.ok(authService.refresh(request));
+    public ResponseEntity<Void> refresh(@CookieValue(name = "refreshToken") String refreshTokenCookie) {
+        RefreshTokenRequest request = new RefreshTokenRequest();
+        request.setRefreshToken(refreshTokenCookie);
+        AuthResponse tokens = authService.refresh(request);
+
+        var accessCookie = cookieUtils.createTokenCookie("accessToken", tokens.getAccessToken(), 3600); // 1 hr
+        var refreshCookie = cookieUtils.createTokenCookie("refreshToken", tokens.getRefreshToken(), 604800); // 7 days
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserMeResponse> getCurrentUser(@CurrentUser User user) {
+        return ResponseEntity.ok(userService.getUserMeInfo(user));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@Valid @RequestBody LogoutRequest request) {
-        authService.logout(request);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> logout(@CookieValue(name = "refreshToken", required = false) String refreshTokenCookie) {
+        if (refreshTokenCookie != null) {
+            LogoutRequest request = new LogoutRequest();
+            request.setRefreshToken(refreshTokenCookie);
+            authService.logout(request);
+        }
+        var accessCookie = cookieUtils.cleanCookie("accessToken");
+        var refreshCookie = cookieUtils.cleanCookie("refreshToken");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .build();
     }
 
     @PostMapping("/forgot-password")
