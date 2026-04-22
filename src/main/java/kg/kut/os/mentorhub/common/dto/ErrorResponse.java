@@ -1,6 +1,7 @@
 package kg.kut.os.mentorhub.common.dto;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 public class ErrorResponse {
 
@@ -8,15 +9,17 @@ public class ErrorResponse {
     private String errorCode;
     private String message;
     private LocalDateTime timestamp;
+    private Map<String, String> fieldErrors;
 
     public ErrorResponse() {
     }
 
-    public ErrorResponse(String errorCode, String message, LocalDateTime timestamp) {
+    public ErrorResponse(String errorCode, String message, LocalDateTime timestamp, Map<String, String> fieldErrors) {
         this.code = errorCode;
         this.errorCode = errorCode;
         this.message = message;
         this.timestamp = timestamp;
+        this.fieldErrors = fieldErrors;
     }
 
     public String getCode() {
@@ -49,5 +52,13 @@ public class ErrorResponse {
 
     public void setTimestamp(LocalDateTime timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public Map<String, String> getFieldErrors() {
+        return fieldErrors;
+    }
+
+    public void setFieldErrors(Map<String, String> fieldErrors) {
+        this.fieldErrors = fieldErrors;
     }
 }
