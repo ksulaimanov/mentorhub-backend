@@ -3,7 +3,9 @@
 # This profile seeds a local admin account on startup.
 
 app:
+  jwt:
+    secret: c3VwZXItc2VjdXJlLXRlc3Qta2V5LXN1cGVyLXNlY3VyZS10ZXN0LWtleQ== # Not for production
+
   admin:
     email: admin@mentorhub.local
     password: Admin123!
-
