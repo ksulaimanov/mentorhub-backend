@@ -12,7 +12,6 @@ public class MentorProfileResponse {
     private String firstName;
     private String lastName;
     private String displayName;
-    private String avatarKey;
     private String avatarUrl;
     private String headline;
     private String bio;
@@ -65,10 +64,6 @@ public class MentorProfileResponse {
 
     public String getDisplayName() {
         return displayName;
-    }
-
-    public String getAvatarKey() {
-        return avatarKey;
     }
 
     public String getAvatarUrl() {
@@ -163,9 +158,6 @@ public class MentorProfileResponse {
         this.displayName = displayName;
     }
 
-    public void setAvatarKey(String avatarKey) {
-        this.avatarKey = avatarKey;
-    }
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;

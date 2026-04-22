@@ -137,7 +137,6 @@ public class MentorProfileService {
         response.setLastName(profile.getLastName());
         response.setDisplayName(buildDisplayName(profile));
 
-        response.setAvatarKey(profile.getAvatarKey());
         response.setAvatarUrl(storageService.buildPublicUrl(profile.getAvatarKey()));
 
         response.setHeadline(profile.getHeadline());
