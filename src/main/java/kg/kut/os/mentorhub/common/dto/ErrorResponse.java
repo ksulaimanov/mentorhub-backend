@@ -22,13 +22,6 @@ public class ErrorResponse {
         this.fieldErrors = fieldErrors;
     }
 
-    public ErrorResponse(String errorCode, String message, LocalDateTime timestamp, Map<String, String> fieldErrors) {
-        this.code = errorCode;
-        this.errorCode = errorCode;
-        this.message = message;
-        this.timestamp = timestamp;
-        this.fieldErrors = fieldErrors;
-    }
 
     public String getCode() {
         return code;
