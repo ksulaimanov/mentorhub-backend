@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.security.SecureRandom;
 
 @Service
 @Transactional
@@ -39,6 +41,8 @@ public class AuthService {
     private final long verificationCodeExpirationMinutes;
     private final long resendCooldownSeconds;
     private final int maxVerificationAttempts;
+
+    private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
             UserRepository userRepository,
@@ -305,7 +309,7 @@ public class AuthService {
     }
 
     private String generateSixDigitCode() {
-        int value = 100000 + (int) (Math.random() * 900000);
+        int value = 100000 + secureRandom.nextInt(900000);
         return String.valueOf(value);
     }
 
@@ -403,7 +407,8 @@ public class AuthService {
     }
 
     private void revokeAllRefreshTokens(User user) {
-        refreshTokenRepository.findAllByUserId(user.getId())
-                .forEach(token -> token.setRevoked(true));
+        List<RefreshToken> tokens = refreshTokenRepository.findAllByUserId(user.getId());
+        tokens.forEach(token -> token.setRevoked(true));
+        refreshTokenRepository.saveAll(tokens);
     }
 }
