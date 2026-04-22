@@ -1,6 +1,7 @@
 package kg.kut.os.mentorhub.notification.dto;
 
 import kg.kut.os.mentorhub.notification.entity.NotificationType;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 
@@ -9,7 +10,10 @@ public class NotificationDto {
     private NotificationType type;
     private String title;
     private String content;
+
+    @JsonProperty("isRead")
     private boolean isRead;
+
     private String actionUrl;
     private LocalDateTime createdAt;
 
@@ -72,4 +76,3 @@ public class NotificationDto {
         this.createdAt = createdAt;
     }
 }
-
