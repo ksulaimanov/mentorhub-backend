@@ -72,7 +72,10 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Void> refresh(@CookieValue(name = "refreshToken") String refreshTokenCookie) {
+    public ResponseEntity<Void> refresh(@CookieValue(name = "refreshToken", required = false) String refreshTokenCookie) {
+        if (refreshTokenCookie == null || refreshTokenCookie.isBlank()) {
+            throw AuthException.invalidRefreshToken();
+        }
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken(refreshTokenCookie);
         AuthResponse tokens = authService.refresh(request);

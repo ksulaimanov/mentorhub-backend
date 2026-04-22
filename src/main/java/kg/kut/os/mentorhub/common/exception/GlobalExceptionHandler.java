@@ -41,6 +41,14 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Некорректные данные запроса", request, fieldErrors);
     }
 
+    @ExceptionHandler(org.springframework.web.bind.MissingRequestCookieException.class)
+    public ResponseEntity<ErrorResponse> handleMissingCookie(
+            org.springframework.web.bind.MissingRequestCookieException ex,
+            HttpServletRequest request
+    ) {
+        return build(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN", "Refresh token не найден", request, null);
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> handleMaxUploadSize(
             MaxUploadSizeExceededException ex,
