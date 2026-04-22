@@ -6,6 +6,7 @@ import kg.kut.os.mentorhub.auth.entity.User;
 import kg.kut.os.mentorhub.auth.service.AuthService;
 import kg.kut.os.mentorhub.auth.service.UserService;
 import kg.kut.os.mentorhub.auth.util.CookieUtils;
+import kg.kut.os.mentorhub.common.exception.AuthException;
 import kg.kut.os.mentorhub.common.dto.MessageResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -106,7 +106,8 @@ public class RateLimitFilter implements Filter {
             ErrorResponse errorResponse = new ErrorResponse(
                     "RATE_LIMIT_EXCEEDED",
                     "Слишком много запросов. Попробуйте через " + waitSeconds + " с.",
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    null
             );
 
             response.getWriter().write(objectMapper.writeValueAsString(errorResponse));
