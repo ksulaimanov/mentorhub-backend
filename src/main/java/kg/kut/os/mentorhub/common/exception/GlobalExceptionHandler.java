@@ -160,7 +160,8 @@ public class GlobalExceptionHandler {
         ErrorResponse body = new ErrorResponse(
                 code,
                 message,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                fieldErrors
         );
 
         return ResponseEntity.status(status).body(body);
