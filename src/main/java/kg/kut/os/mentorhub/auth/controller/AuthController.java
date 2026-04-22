@@ -7,6 +7,8 @@ import kg.kut.os.mentorhub.auth.service.AuthService;
 import kg.kut.os.mentorhub.auth.service.UserService;
 import kg.kut.os.mentorhub.auth.util.CookieUtils;
 import kg.kut.os.mentorhub.common.dto.MessageResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,8 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
     private final UserService userService;
@@ -84,7 +88,10 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<UserMeResponse> getCurrentUser(@CurrentUser User user) {
-        return ResponseEntity.ok(userService.getUserMeInfo(user));
+        log.info("AUTH_ME_RESOLVED_USER: id={}, email={}, roles={}", user.getId(), user.getEmail(), user.getRoles());
+        UserMeResponse userDto = userService.getUserMeInfo(user);
+        log.info("FINAL_USER_DTO: {}", userDto);
+        return ResponseEntity.ok(userDto);
     }
 
     @PostMapping("/logout")

@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 
@@ -35,7 +34,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @Value("${cors.allowed.origins:http://localhost:3000,https://jaimentorship.kutman.me,https://app.kutman.me,https://jaimentorship.kg}")
+    @Value("${cors.allowed.origins:http://localhost:5173,https://jaimentorship.kutman.me,https://app.kutman.me,https://jaimentorship.kg}")
     private String corsAllowedOrigins;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
@@ -71,7 +70,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/login",
+                                "/api/auth/register/student",
+                                "/api/auth/register/mentor",
+                                "/api/auth/verify-email",
+                                "/api/auth/resend-verification",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
+                                "/api/auth/refresh",
                                 "/v1/auth/**",
                                 "/api/public/**",
                                 "/uploads/**",
@@ -82,6 +88,7 @@ public class SecurityConfig {
                                 "/actuator/health/**",
                                 "/ws-stomp/**"
                         ).permitAll()
+                        .requestMatchers("/api/auth/me", "/api/users/me", "/api/auth/logout").authenticated()
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/mentor/**", "/api/mentors/**").hasRole("MENTOR")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")

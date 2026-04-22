@@ -60,6 +60,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        log.info("Filtering request: {} | Auth present: {}", request.getRequestURI(), SecurityContextHolder.getContext().getAuthentication() != null);
+
         String token = null;
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {

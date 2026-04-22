@@ -67,6 +67,12 @@ app:
     from: ${MAIL_FROM:no-reply@mentorhub.local}
     enabled: ${MAIL_ENABLED:true}
 
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:3000}
+
+  websocket:
+    enabled: ${WEBSOCKET_ENABLED:true}
+
   jwt:
     secret: c3VwZXItc2VjdXJlLXRlc3Qta2V5LXN1cGVyLXNlY3VyZS10ZXN0LWtleQ==
     access-token-expiration-minutes: 15

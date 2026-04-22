@@ -31,7 +31,7 @@ public class AuthException extends RuntimeException {
     }
 
     public static AuthException emailNotVerified() {
-        return new AuthException("EMAIL_NOT_VERIFIED", 401, "Email ещё не подтверждён");
+        return new AuthException("EMAIL_NOT_VERIFIED", 403, "Email ещё не подтверждён");
     }
 
     public static AuthException accountDisabled() {

@@ -64,7 +64,12 @@ public class RateLimitFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
-        String path = request.getRequestURI();
+        // Use getServletPath() to get the path without query string
+        // and strip any trailing slash for consistent comparison
+        String path = request.getServletPath();
+        if (path == null) {
+            path = request.getRequestURI();
+        }
 
         // Only rate-limit configured paths
         if (!rateLimitedPaths.contains(path)) {
