@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -403,7 +404,8 @@ public class AuthService {
     }
 
     private void revokeAllRefreshTokens(User user) {
-        refreshTokenRepository.findAllByUserId(user.getId())
-                .forEach(token -> token.setRevoked(true));
+        List<RefreshToken> tokens = refreshTokenRepository.findAllByUserId(user.getId());
+        tokens.forEach(token -> token.setRevoked(true));
+        refreshTokenRepository.saveAll(tokens);
     }
 }

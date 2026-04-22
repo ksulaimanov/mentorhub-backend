@@ -1,5 +1,7 @@
 package kg.kut.os.mentorhub.common.security;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,6 +33,8 @@ import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -104,7 +108,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         List<String> origins = Arrays.asList(corsAllowedOrigins.split(","));
-        System.out.println("AllowedOrigins: " + origins);
+        log.info("CORS allowed origins configured: {}", origins);
         configuration.setAllowedOrigins(origins);
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
