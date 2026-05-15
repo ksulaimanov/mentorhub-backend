@@ -33,6 +33,7 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+    repair-on-migrate: true
 
   jackson:
     serialization:
@@ -94,6 +95,9 @@ app:
       - /api/auth/forgot-password
       - /api/auth/reset-password
 
+  admin:
+    email: ${ADMIN_EMAIL:admin@mentorhub.kg}
+    password: ${ADMIN_PASSWORD:admin123}
 
 springdoc:
   api-docs:

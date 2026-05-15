@@ -22,10 +22,18 @@ import java.util.UUID;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.security.SecureRandom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
+import org.slf4j.MDC;
 
 @Service
 @Transactional
 public class AuthService {
+
+    private static final Logger securityLogger = LoggerFactory.getLogger("SECURITY_AUDIT");
+    private static final Marker SECURITY_MARKER = MarkerFactory.getMarker("SECURITY");
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -147,27 +155,29 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.getEmail());
-
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
-                .orElseThrow(AuthException::invalidCredentials);
-
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+                .orElse(null);
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            securityLogger.warn(SECURITY_MARKER,
+                "Authentication failed: invalid credentials {\"security_event_type\":\"AUTH_BRUTEFORCE_SUSPECT\",\"reason\":\"Bad credentials\",\"username\":\"{}\",\"client_ip\":\"{}\"}",
+                maskIfSensitive(request.getEmail()), MDC.get("client_ip"));
             throw AuthException.invalidCredentials();
         }
-
         if (!user.isEmailVerified() || user.getStatus() == UserStatus.PENDING_EMAIL_VERIFICATION) {
+            securityLogger.warn(SECURITY_MARKER,
+                "Authentication failed: email not verified {\"security_event_type\":\"AUTH_EMAIL_NOT_VERIFIED\",\"username\":\"{}\",\"client_ip\":\"{}\"}",
+                maskIfSensitive(request.getEmail()), MDC.get("client_ip"));
             throw AuthException.emailNotVerified();
         }
-
         if (user.getStatus() != UserStatus.ACTIVE) {
+            securityLogger.warn(SECURITY_MARKER,
+                "Authentication failed: account disabled {\"security_event_type\":\"AUTH_ACCOUNT_DISABLED\",\"username\":\"{}\",\"client_ip\":\"{}\"}",
+                maskIfSensitive(request.getEmail()), MDC.get("client_ip"));
             throw AuthException.accountDisabled();
         }
-
         RefreshToken refreshToken = createRefreshToken(user);
-
         user.setLastActiveAt(LocalDateTime.now());
         userRepository.save(user);
-
         return buildAuthResponse(user, refreshToken.getToken());
     }
 
@@ -411,5 +421,12 @@ public class AuthService {
         List<RefreshToken> tokens = refreshTokenRepository.findAllByUserId(user.getId());
         tokens.forEach(token -> token.setRevoked(true));
         refreshTokenRepository.saveAll(tokens);
+    }
+
+    private String maskIfSensitive(String value) {
+        if (value != null && value.matches("(?i).*(password|token|secret).*$")) {
+            return "***";
+        }
+        return value;
     }
 }

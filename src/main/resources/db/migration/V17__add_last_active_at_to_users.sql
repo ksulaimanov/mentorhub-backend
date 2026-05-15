@@ -1,1 +1,1 @@
-ALTER TABLE users ADD COLUMN last_active_at TIMESTAMP;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP;

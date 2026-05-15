@@ -12,6 +12,7 @@ import kg.kut.os.mentorhub.auth.repository.UserRepository;
 import kg.kut.os.mentorhub.common.exception.ConflictException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -73,6 +74,7 @@ public class MentorApplicationServiceTest {
     }
 
     @Test
+    @WithMockUser(roles = "STUDENT")
     void submitApplication_success() {
         SubmitApplicationRequest request = new SubmitApplicationRequest();
         request.setMotivationText("This is a valid motivation text.");
@@ -87,6 +89,7 @@ public class MentorApplicationServiceTest {
     }
 
     @Test
+    @WithMockUser(roles = "STUDENT")
     void submitApplication_duplicate() {
         SubmitApplicationRequest request = new SubmitApplicationRequest();
         request.setMotivationText("Valid motivation text 1.");

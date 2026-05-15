@@ -10,44 +10,30 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 
-/**
- * Seeds a local admin account on startup.
- * <p>
- * Only active under the "dev" Spring profile — never runs in production.
- * Idempotent: if the admin user already exists, it is skipped.
- * <p>
- * Configure credentials in application-dev.yml:
- * <pre>
- *   app.admin.email=admin@mentorhub.local
- *   app.admin.password=Admin123!
- * </pre>
- */
 @Component
-@Profile("dev")
-public class DevAdminSeeder implements CommandLineRunner {
+public class AdminUserInitializer implements CommandLineRunner {
 
-    private static final Logger log = LoggerFactory.getLogger(DevAdminSeeder.class);
+    private static final Logger log = LoggerFactory.getLogger(AdminUserInitializer.class);
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.admin.email:admin@mentorhub.local}")
+    @Value("${app.admin.email:admin@mentorhub.kg}")
     private String adminEmail;
 
-    @Value("${app.admin.password:Admin123!}")
+    @Value("${app.admin.password:admin123}")
     private String adminPassword;
 
-    public DevAdminSeeder(UserRepository userRepository,
-                          RoleRepository roleRepository,
-                          PasswordEncoder passwordEncoder) {
+    public AdminUserInitializer(UserRepository userRepository,
+                              RoleRepository roleRepository,
+                              PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
@@ -57,17 +43,18 @@ public class DevAdminSeeder implements CommandLineRunner {
     @Transactional
     public void run(String... args) {
         if (userRepository.existsByEmailIgnoreCase(adminEmail)) {
-            log.info("[DevAdminSeeder] Admin account '{}' already exists — skipped", adminEmail);
+            log.info("[AdminUserInitializer] Admin account '{}' already exists — skipped", adminEmail);
             return;
         }
 
         Role adminRole = roleRepository.findByCode(RoleCode.ROLE_ADMIN)
                 .orElseThrow(() -> new IllegalStateException(
-                        "ROLE_ADMIN not found in DB. Check V1__init_auth_schema.sql migration."));
+                        "ROLE_ADMIN not found in DB. Check migrations."));
 
         User admin = new User();
         admin.setEmail(adminEmail.trim().toLowerCase());
         admin.setPasswordHash(passwordEncoder.encode(adminPassword));
+        // Status renamed to PENDING_EMAIL_VERIFICATION or ACTIVE in newer migration, let's use ACTIVE since it's admin
         admin.setStatus(UserStatus.ACTIVE);
         admin.setEmailVerified(true);
         admin.setPreferredLocale("ky");
@@ -75,7 +62,7 @@ public class DevAdminSeeder implements CommandLineRunner {
 
         userRepository.save(admin);
 
-        log.info("[DevAdminSeeder] ✅ Admin account created: {}", adminEmail);
+        log.info("[AdminUserInitializer] ✔ Admin account created: {}", adminEmail);
     }
 }
 

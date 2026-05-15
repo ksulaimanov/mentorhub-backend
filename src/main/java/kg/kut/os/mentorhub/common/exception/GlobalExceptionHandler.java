@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import kg.kut.os.mentorhub.common.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +27,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger securityLogger = LoggerFactory.getLogger("SECURITY_AUDIT");
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
@@ -33,11 +35,14 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         Map<String, String> fieldErrors = new LinkedHashMap<>();
-
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
+            if (fieldError.getDefaultMessage() != null && fieldError.getDefaultMessage().matches(".*[<>\\'\"].*")) {
+                securityLogger.warn("Input validation error",
+                    "{\"security_event_type\":\"INPUT_VALIDATION_ERROR\",\"field\":\"{}\",\"value\":\"{}\",\"client_ip\":\"{}\",\"request_uri\":\"{}\"}",
+                    fieldError.getField(), maskIfSensitive(fieldError.getRejectedValue()), MDC.get("client_ip"), MDC.get("request_uri"));
+            }
         }
-
         return build(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Некорректные данные запроса", request, fieldErrors);
     }
 
@@ -80,6 +85,9 @@ public class GlobalExceptionHandler {
             AccessDeniedException ex,
             HttpServletRequest request
     ) {
+        securityLogger.warn("Access denied (403)",
+            "{\"security_event_type\":\"UNAUTHORIZED_ACCESS\",\"client_ip\":\"{}\",\"user_agent\":\"{}\",\"request_method\":\"{}\",\"request_uri\":\"{}\"}",
+            MDC.get("client_ip"), MDC.get("user_agent"), MDC.get("request_method"), MDC.get("request_uri"));
         return build(HttpStatus.FORBIDDEN, "FORBIDDEN", "Доступ запрещён", request, null);
     }
 
@@ -173,5 +181,14 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(status).body(body);
+    }
+
+    private String maskIfSensitive(Object value) {
+        if (value == null) return null;
+        String str = value.toString();
+        if (str.matches("(?i).*(password|token|secret).*$")) {
+            return "***";
+        }
+        return str;
     }
 }

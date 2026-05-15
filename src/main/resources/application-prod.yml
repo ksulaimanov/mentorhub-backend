@@ -113,7 +113,7 @@ app:
       avatar-max-size-bytes: 10485760
 
   rate-limit:
-    requests-per-minute: 5
+    requests-per-minute: 100
     paths:
       - /api/auth/login
       - /api/auth/register/student
