@@ -1,50 +1,110 @@
 # MentorHub Backend
 
-## Overview
-MentorHub is a robust backend framework designed to serve as the backbone for a mentorship platform. It handles user accounts, session management, and data storage efficiently, enabling mentors and mentees to connect seamlessly.
+REST API платформы менторства MentorHub / JaiMentorship: аккаунты и роли, профили менторов
+и студентов, заявки на менторство, слоты доступности, бронирования, отзывы и уведомления.
 
-## Features
-- User registration and authentication
-- Profile management for mentors and mentees
-- Messaging system for communication
-- Scheduling system for mentor-mentee meetings
-- Admin dashboard for monitoring activities
+Фронтенд живёт в отдельном репозитории — [metorhub-frontend](https://github.com/ksulaimanov/metorhub-frontend).
 
-## Technology Stack
-- **Node.js**: For backend logic and server management.
-- **Express**: Web framework for building RESTful APIs.
-- **MongoDB**: NoSQL database for data storage.
-- **JWT**: For secure user authentication.
-- **Mongoose**: ODM for MongoDB.
-- **Docker**: For containerization and deployment.
+## Стек
 
-## Setup Instructions
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/ksulaimanov/mentorhub-backend.git
-   cd mentorhub-backend
-   ```
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-3. **Create a `.env` file** in the root directory and add your configuration:
-   ```
-   PORT=3000
-   MONGODB_URI=<your_mongodb_uri>
-   JWT_SECRET=<your_jwt_secret>
-   ```
-4. **Start the server**:
-   ```bash
-   npm start
-   ```
+| | |
+|---|---|
+| Язык / рантайм | Java 21 |
+| Фреймворк | Spring Boot 3.5 (Web, Security, Data JPA, Validation, Mail, Thymeleaf, WebSocket, Actuator) |
+| БД | PostgreSQL + Flyway (миграции в `src/main/resources/db/migration`) |
+| Аутентификация | JWT (jjwt) в httpOnly cookie + refresh-токены с ротацией |
+| Хранилище файлов | Google Cloud Storage либо локальный диск (`app.storage.type`) |
+| Почта | SMTP, шаблоны Thymeleaf в `src/main/resources/templates/mail` |
+| Документация API | springdoc-openapi → `/swagger-ui` |
+| Сборка | Maven (через `./mvnw`) |
 
-## Deployment Information
-- **Docker**: Use Docker for production deployments to ensure consistency and reliability across environments.
-- **Cloud Providers**: Suitable for deployment on platforms such as AWS, Heroku, or DigitalOcean.
+## Модули
 
-## Contributing
-Please refer to the CONTRIBUTING.md file for guidelines on how to contribute to this project.
+Код разложен по доменным пакетам в `kg.kut.os.mentorhub`:
 
-## License
-This project is licensed under the MIT License. See the LICENSE file for details.
+| Пакет | Ответственность |
+|---|---|
+| `auth` | регистрация, вход, подтверждение email, сброс пароля, refresh-токены, роли |
+| `student` / `mentor` | профили и аватары |
+| `application` | заявки студентов на роль ментора и их модерация |
+| `availability` | слоты доступности ментора |
+| `booking` | бронирование занятий |
+| `review` | отзывы о менторах |
+| `notification` | in-app уведомления и отправка писем |
+| `dashboard` | сводки для студента, ментора и админа |
+| `admin` | администрирование пользователей |
+| `common` | security, конфигурация, обработка ошибок, общие DTO |
+
+## Локальный запуск
+
+Нужны **JDK 21+** и **Docker**. Maven ставить не нужно — в репозитории есть wrapper.
+
+```bash
+./run-local.sh
+```
+
+Скрипт находит JDK, поднимает PostgreSQL в Docker, дожидается готовности базы
+и стартует приложение с профилем `dev`. Отправка почты выключена — коды
+подтверждения печатаются в лог.
+
+Приложение слушает `http://localhost:8080`, Swagger UI — `http://localhost:8080/swagger-ui`.
+Профиль `dev` создаёт админа `admin@mentorhub.local` / `Admin123!`.
+
+Настраивается переменными окружения:
+
+| Переменная | По умолчанию | Зачем |
+|---|---|---|
+| `DB_PORT` | `5433` | порт PostgreSQL на хосте (5432 часто занят другим проектом) |
+| `APP_PORT` | `8080` | порт приложения |
+| `MAIL_ENABLED` | `false` | `true` включает реальную отправку (нужны `MAIL_USERNAME` / `MAIL_PASSWORD`) |
+
+Сбросить базу начисто:
+
+```bash
+docker rm -f mentorhub-pg && docker volume rm mentorhub-pgdata
+```
+
+### Запуск вручную
+
+```bash
+docker compose -f docker-compose.dev.yml up -d postgres   # база на 5432
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+### Тесты
+
+```bash
+./mvnw test
+```
+
+Интеграционные тесты используют Testcontainers, поэтому нужен запущенный Docker.
+
+## Профили и конфигурация
+
+| Профиль | Файл | Назначение |
+|---|---|---|
+| (по умолчанию) | `application.yml` | локальная разработка, значения захардкожены |
+| `dev` | `application-dev.yml` | + сид админского аккаунта |
+| `prod` | `application-prod.yml` | всё через переменные окружения, Cloud SQL, GCS |
+
+Ключевые переменные окружения для `prod` перечислены в [DEPLOYMENT.md](DEPLOYMENT.md).
+
+> **Важно:** значение `app.jwt.secret` по умолчанию — общеизвестный тестовый ключ,
+> лежащий в открытом репозитории. Он годится только для локальной работы. Любой стенд
+> обязан задавать `JWT_SECRET` (в `prod` — из Secret Manager), иначе кто угодно сможет
+> подписать валидный токен.
+
+## Сборка образа
+
+```bash
+docker build -t mentorhub-backend .
+```
+
+Multi-stage сборка: `eclipse-temurin:21-jdk-alpine` собирает jar через `./mvnw`,
+рантайм-слой — `21-jre-alpine`, запуск от непривилегированного пользователя,
+профиль `prod` зашит в `ENTRYPOINT`.
+
+## Документация
+
+- [API_REFERENCE.md](API_REFERENCE.md) — полный список эндпоинтов с правами доступа
+- [DEPLOYMENT.md](DEPLOYMENT.md) — деплой на Google Cloud Run + Cloud SQL + GCS
