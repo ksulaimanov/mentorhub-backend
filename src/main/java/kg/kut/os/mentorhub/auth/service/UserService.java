@@ -6,8 +6,6 @@ import kg.kut.os.mentorhub.auth.entity.User;
 import kg.kut.os.mentorhub.media.StorageService;
 import kg.kut.os.mentorhub.mentor.repository.MentorProfileRepository;
 import kg.kut.os.mentorhub.student.repository.StudentProfileRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
@@ -15,8 +13,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
-
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final StudentProfileRepository studentProfileRepository;
     private final MentorProfileRepository mentorProfileRepository;
@@ -35,8 +31,6 @@ public class UserService {
         Set<String> roles = user.getRoles().stream()
                 .map(r -> r.getCode().name())
                 .collect(Collectors.toSet());
-
-        log.info("USER_ME_SOURCE: id={}, email={}, roles={}", user.getId(), user.getEmail(), roles);
 
         UserMeResponse response = new UserMeResponse();
         response.setUserId(user.getId());
@@ -64,7 +58,6 @@ public class UserService {
             });
         }
 
-        log.info("USER_ME_RESPONSE_BUILT: {}", response);
         return response;
     }
 }

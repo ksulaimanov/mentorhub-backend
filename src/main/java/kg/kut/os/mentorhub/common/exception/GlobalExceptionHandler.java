@@ -5,6 +5,8 @@ import kg.kut.os.mentorhub.common.dto.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.slf4j.Marker;
+import org.slf4j.MarkerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +21,6 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -28,6 +29,7 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private static final Logger securityLogger = LoggerFactory.getLogger("SECURITY_AUDIT");
+    private static final Marker SECURITY_MARKER = MarkerFactory.getMarker("SECURITY");
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
@@ -38,8 +40,8 @@ public class GlobalExceptionHandler {
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             fieldErrors.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
             if (fieldError.getDefaultMessage() != null && fieldError.getDefaultMessage().matches(".*[<>\\'\"].*")) {
-                securityLogger.warn("Input validation error",
-                    "{\"security_event_type\":\"INPUT_VALIDATION_ERROR\",\"field\":\"{}\",\"value\":\"{}\",\"client_ip\":\"{}\",\"request_uri\":\"{}\"}",
+                securityLogger.warn(SECURITY_MARKER,
+                    "Input validation error {\"security_event_type\":\"INPUT_VALIDATION_ERROR\",\"field\":\"{}\",\"value\":\"{}\",\"client_ip\":\"{}\",\"request_uri\":\"{}\"}",
                     fieldError.getField(), maskIfSensitive(fieldError.getRejectedValue()), MDC.get("client_ip"), MDC.get("request_uri"));
             }
         }
@@ -85,8 +87,8 @@ public class GlobalExceptionHandler {
             AccessDeniedException ex,
             HttpServletRequest request
     ) {
-        securityLogger.warn("Access denied (403)",
-            "{\"security_event_type\":\"UNAUTHORIZED_ACCESS\",\"client_ip\":\"{}\",\"user_agent\":\"{}\",\"request_method\":\"{}\",\"request_uri\":\"{}\"}",
+        securityLogger.warn(SECURITY_MARKER,
+            "Access denied (403) {\"security_event_type\":\"UNAUTHORIZED_ACCESS\",\"client_ip\":\"{}\",\"user_agent\":\"{}\",\"request_method\":\"{}\",\"request_uri\":\"{}\"}",
             MDC.get("client_ip"), MDC.get("user_agent"), MDC.get("request_method"), MDC.get("request_uri"));
         return build(HttpStatus.FORBIDDEN, "FORBIDDEN", "Доступ запрещён", request, null);
     }
