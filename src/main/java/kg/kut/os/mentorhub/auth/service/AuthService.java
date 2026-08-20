@@ -1,6 +1,6 @@
 package kg.kut.os.mentorhub.auth.service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import kg.kut.os.mentorhub.auth.dto.*;
 import kg.kut.os.mentorhub.auth.entity.*;
 import kg.kut.os.mentorhub.auth.repository.*;
@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.List;
 import java.util.stream.Collectors;
 import java.security.SecureRandom;
 import org.slf4j.Logger;
@@ -53,6 +52,13 @@ public class AuthService {
 
     private final SecureRandom secureRandom = new SecureRandom();
 
+    /**
+     * Хеш заведомо недостижимого пароля. Нужен, чтобы при неизвестном email всё равно
+     * выполнить bcrypt: иначе ответ приходит заметно быстрее и по времени отклика
+     * можно перебрать, какие адреса зарегистрированы.
+     */
+    private final String dummyPasswordHash;
+
     public AuthService(
             UserRepository userRepository,
             RoleRepository roleRepository,
@@ -82,6 +88,7 @@ public class AuthService {
         this.verificationCodeExpirationMinutes = verificationCodeExpirationMinutes;
         this.resendCooldownSeconds = resendCooldownSeconds;
         this.maxVerificationAttempts = maxVerificationAttempts;
+        this.dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
 
     public void registerStudent(RegisterStudentRequest request) {
@@ -157,7 +164,11 @@ public class AuthService {
         String normalizedEmail = normalizeEmail(request.getEmail());
         User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElse(null);
-        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+        // Хеш сверяем всегда — в том числе для несуществующего пользователя, чтобы
+        // время ответа не выдавало, зарегистрирован адрес или нет.
+        String expectedHash = user != null ? user.getPasswordHash() : dummyPasswordHash;
+        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), expectedHash);
+        if (user == null || !passwordMatches) {
             securityLogger.warn(SECURITY_MARKER,
                 "Authentication failed: invalid credentials {\"security_event_type\":\"AUTH_BRUTEFORCE_SUSPECT\",\"reason\":\"Bad credentials\",\"username\":\"{}\",\"client_ip\":\"{}\"}",
                 maskIfSensitive(request.getEmail()), MDC.get("client_ip"));
@@ -234,7 +245,8 @@ public class AuthService {
         }
 
         Role role = roleRepository.findByCode(roleCode)
-                .orElseThrow(() -> new RuntimeException("Роль не найдена: " + roleCode));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Роль " + roleCode + " отсутствует в базе — проверьте миграции Flyway"));
 
         User user = new User();
         user.setEmail(normalizedEmail);
@@ -343,7 +355,10 @@ public class AuthService {
 
         if (latestCode != null &&
                 latestCode.getCreatedAt().plusSeconds(resendCooldownSeconds).isAfter(LocalDateTime.now())) {
-            throw AuthException.tooManyRequests();
+            // Молча выходим, как и для незарегистрированного адреса. Ответ 429 здесь
+            // сказал бы атакующему, что такой email существует, — а контроллер как раз
+            // отвечает нейтральным «если email зарегистрирован, код отправлен».
+            return;
         }
 
         issueAndSendPasswordResetCode(user);
@@ -411,9 +426,9 @@ public class AuthService {
 
     private String extractUserName(User user) {
         return studentProfileRepository.findByUserId(user.getId())
-                .map(kg.kut.os.mentorhub.student.entity.StudentProfile::getFirstName)
+                .map(StudentProfile::getFirstName)
                 .orElseGet(() -> mentorProfileRepository.findByUserId(user.getId())
-                        .map(kg.kut.os.mentorhub.mentor.entity.MentorProfile::getFirstName)
+                        .map(MentorProfile::getFirstName)
                         .orElse(null));
     }
 
