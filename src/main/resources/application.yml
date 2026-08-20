@@ -33,7 +33,9 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    repair-on-migrate: true
+    # repair-on-migrate намеренно НЕ включён здесь: базовый файл действует и для prod,
+    # а там авто-починка контрольных сумм молча узаконила бы правку уже применённой
+    # миграции. Для локальной разработки он включён в application-dev.yml.
 
   jackson:
     serialization:
@@ -49,6 +51,12 @@ management:
     web:
       exposure:
         include: health,info,metrics
+  health:
+    mail:
+      # Недоступность SMTP не значит, что сервис нерабочий: письма уходят асинхронно.
+      # Иначе любой сбой почты роняет /actuator/health в DOWN (503), и healthcheck
+      # docker-compose вместе с Cloud Run убивают полностью живой контейнер.
+      enabled: false
 
 logging:
   level:
@@ -67,7 +75,9 @@ app:
     enabled: ${WEBSOCKET_ENABLED:true}
 
   jwt:
-    secret: c3VwZXItc2VjdXJlLXRlc3Qta2V5LXN1cGVyLXNlY3VyZS10ZXN0LWtleQ==
+    # Значение по умолчанию — общеизвестный тестовый ключ из публичного репозитория,
+    # пригоден только для локального запуска. Любой стенд должен задавать JWT_SECRET.
+    secret: ${JWT_SECRET:c3VwZXItc2VjdXJlLXRlc3Qta2V5LXN1cGVyLXNlY3VyZS10ZXN0LWtleQ==}
     access-token-expiration-minutes: 15
     refresh-token-expiration-days: 30
 

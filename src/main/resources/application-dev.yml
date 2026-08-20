@@ -2,6 +2,12 @@
 # Activated with: spring.profiles.active=dev
 # This profile seeds a local admin account on startup.
 
+spring:
+  flyway:
+    # Локально миграции нередко правят на месте — пусть Flyway сам чинит контрольные суммы.
+    # В prod это намеренно выключено, см. комментарий в application.yml.
+    repair-on-migrate: true
+
 app:
   jwt:
     secret: c3VwZXItc2VjdXJlLXRlc3Qta2V5LXN1cGVyLXNlY3VyZS10ZXN0LWtleQ== # Not for production
