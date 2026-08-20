@@ -64,33 +64,13 @@ public class SecurityConfig {
                                 .maxAgeInSeconds(31536000))
                         .referrerPolicy(referrer -> referrer
                                 .policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
-                        .permissionsPolicy(policy -> policy.policy("camera=(), microphone=(), geolocation=(), payment=()"))
-                )
-                .headers(headers -> headers
-                        .contentSecurityPolicy("default-src 'self'; frame-ancestors 'none'")
+                        .permissionsPolicyHeader(policy -> policy.policy("camera=(), microphone=(), geolocation=(), payment=()"))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives("default-src 'self'; frame-ancestors 'none'"))
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/register/student",
-                                "/api/auth/register/mentor",
-                                "/api/auth/verify-email",
-                                "/api/auth/resend-verification",
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password",
-                                "/api/auth/refresh",
-                                "/v1/auth/**",
-                                "/api/public/**",
-                                "/uploads/**",
-                                "/swagger-ui/**",
-                                "/api-docs/**",
-                                "/v3/api-docs/**",
-                                "/actuator/health",
-                                "/actuator/health/**",
-                                "/ws-stomp/**"
-                        ).permitAll()
+                        .requestMatchers(PublicEndpoints.securityPatterns()).permitAll()
                         .requestMatchers("/api/auth/me", "/api/users/me", "/api/auth/logout").authenticated()
                         .requestMatchers("/api/student/**").hasRole("STUDENT")
                         .requestMatchers("/api/mentor/**", "/api/mentors/**").hasRole("MENTOR")

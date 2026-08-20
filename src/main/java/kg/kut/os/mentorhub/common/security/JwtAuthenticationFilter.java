@@ -33,24 +33,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String method = request.getMethod();
-        String path = request.getServletPath();
-
-        return "OPTIONS".equalsIgnoreCase(method)
-                || path.equals("/api/auth/login")
-                || path.equals("/api/auth/register/student")
-                || path.equals("/api/auth/register/mentor")
-                || path.equals("/api/auth/verify-email")
-                || path.equals("/api/auth/resend-verification")
-                || path.equals("/api/auth/forgot-password")
-                || path.equals("/api/auth/reset-password")
-                || path.equals("/api/auth/refresh")
-                || path.startsWith("/api/public/")
-                || path.startsWith("/swagger-ui/")
-                || path.startsWith("/v3/api-docs/")
-                || path.startsWith("/api-docs/")
-                || path.startsWith("/actuator/health")
-                || path.startsWith("/ws-stomp/");
+        return "OPTIONS".equalsIgnoreCase(request.getMethod())
+                || PublicEndpoints.matches(request.getServletPath());
     }
 
     @Override
@@ -59,8 +43,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-
-        log.info("Filtering request: {} | Auth present: {}", request.getRequestURI(), SecurityContextHolder.getContext().getAuthentication() != null);
 
         String token = null;
         if (request.getCookies() != null) {
