@@ -1,0 +1,93 @@
+name: Deploy
+
+# КАРКАС. Конкретного сервера пока нет, поэтому здесь только форма пайплайна:
+# ручной запуск, выбор окружения и проверка секретов. Шаги Cloud Run
+# заготовлены по образцу cloudbuild.yaml и включаются, когда появится проект.
+#
+# Чтобы включить деплой:
+#   1. Settings → Environments → создать staging / production,
+#      добавить required reviewers (это и есть ручное подтверждение).
+#   2. Добавить секреты окружения: GCP_PROJECT_ID, GCP_REGION,
+#      GCP_WORKLOAD_IDENTITY_PROVIDER, GCP_SERVICE_ACCOUNT.
+#   3. Раскомментировать блок «Cloud Run» ниже и убрать шаг-заглушку.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Окружение
+        type: choice
+        options: [staging, production]
+        default: staging
+
+permissions:
+  contents: read
+  id-token: write # для OIDC-аутентификации в GCP без долгоживущих ключей
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    # Ручное подтверждение навешивается на окружение в настройках репозитория.
+    environment: ${{ inputs.environment }}
+
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ secrets.GCP_REGION }}
+      SERVICE_NAME: mentorhub-backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check target is configured
+        run: |
+          missing=()
+          [ -n "$GCP_PROJECT_ID" ] || missing+=(GCP_PROJECT_ID)
+          [ -n "$GCP_REGION" ] || missing+=(GCP_REGION)
+
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Деплой ещё не настроен. Не заданы секреты: ${missing[*]}"
+            echo "См. комментарий в начале .github/workflows/deploy.yml"
+            exit 1
+          fi
+
+      - name: Placeholder
+        run: |
+          echo "Секреты на месте, но шаги деплоя ещё закомментированы."
+          echo "Раскомментируйте блок Cloud Run в .github/workflows/deploy.yml."
+          exit 1
+
+      # ── Cloud Run ────────────────────────────────────────────────────────
+      # - uses: google-github-actions/auth@v2
+      #   with:
+      #     workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      #     service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      #
+      # - uses: google-github-actions/setup-gcloud@v2
+      #
+      # - name: Configure Docker for Artifact Registry
+      #   run: gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+      #
+      # - name: Build and push
+      #   run: |
+      #     IMAGE="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/mentorhub/${SERVICE_NAME}:${GITHUB_SHA}"
+      #     docker build -t "$IMAGE" .
+      #     docker push "$IMAGE"
+      #     echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+      #
+      # - name: Deploy
+      #   run: |
+      #     gcloud run deploy "$SERVICE_NAME" \
+      #       --image "$IMAGE" \
+      #       --region "$GCP_REGION" \
+      #       --platform managed \
+      #       --memory 512Mi \
+      #       --cpu 1 \
+      #       --max-instances 10 \
+      #       --allow-unauthenticated \
+      #       --set-secrets "JWT_SECRET=jwt-secret:latest,DB_PASSWORD=db-password:latest"
+      #
+      # - name: Smoke check
+      #   run: |
+      #     URL=$(gcloud run services describe "$SERVICE_NAME" --region "$GCP_REGION" --format='value(status.url)')
+      #     curl --fail --retry 5 --retry-delay 5 --retry-connrefused "$URL/actuator/health"
