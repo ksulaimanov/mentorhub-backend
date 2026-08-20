@@ -33,6 +33,5 @@ build/
 .vscode/
 
 .gitattributes
-.mvn
 .env
 uploads
