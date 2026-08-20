@@ -8,29 +8,43 @@ import kg.kut.os.mentorhub.auth.service.UserService;
 import kg.kut.os.mentorhub.auth.util.CookieUtils;
 import kg.kut.os.mentorhub.common.exception.AuthException;
 import kg.kut.os.mentorhub.common.dto.MessageResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import kg.kut.os.mentorhub.common.security.CurrentUser;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import kg.kut.os.mentorhub.common.security.CurrentUser;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+    private static final String ACCESS_TOKEN_COOKIE = "accessToken";
+    private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
 
     private final AuthService authService;
     private final UserService userService;
     private final CookieUtils cookieUtils;
 
-    public AuthController(AuthService authService, UserService userService, CookieUtils cookieUtils) {
+    /** Cookie живут ровно столько же, сколько сами токены — иначе сессия рвётся раньше времени. */
+    private final Duration accessCookieTtl;
+    private final Duration refreshCookieTtl;
+
+    public AuthController(
+            AuthService authService,
+            UserService userService,
+            CookieUtils cookieUtils,
+            @Value("${app.jwt.access-token-expiration-minutes}") long accessTokenExpirationMinutes,
+            @Value("${app.jwt.refresh-token-expiration-days}") long refreshTokenExpirationDays
+    ) {
         this.authService = authService;
         this.userService = userService;
         this.cookieUtils = cookieUtils;
+        this.accessCookieTtl = Duration.ofMinutes(accessTokenExpirationMinutes);
+        this.refreshCookieTtl = Duration.ofDays(refreshTokenExpirationDays);
     }
 
     @PostMapping("/register/student")
@@ -40,7 +54,7 @@ public class AuthController {
     }
 
     @PostMapping("/register/mentor")
-    public ResponseEntity<?> registerMentor(@Valid @RequestBody RegisterMentorRequest request) {
+    public ResponseEntity<MessageResponse> registerMentor() {
         throw new ResponseStatusException(
                 HttpStatus.GONE,
                 "Регистрация менторов закрыта. Пожалуйста, зарегистрируйтесь как студент и подайте заявку на менторство через /api/student/mentor-application"
@@ -61,56 +75,34 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<Void> login(@Valid @RequestBody LoginRequest request) {
-        AuthResponse tokens = authService.login(request);
-
-        var accessCookie = cookieUtils.createTokenCookie("accessToken", tokens.getAccessToken(), 3600); // 1 hr
-        var refreshCookie = cookieUtils.createTokenCookie("refreshToken", tokens.getRefreshToken(), 604800); // 7 days
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .build();
+        return respondWithTokenCookies(authService.login(request));
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Void> refresh(@CookieValue(name = "refreshToken", required = false) String refreshTokenCookie) {
+    public ResponseEntity<Void> refresh(@CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshTokenCookie) {
         if (refreshTokenCookie == null || refreshTokenCookie.isBlank()) {
             throw AuthException.invalidRefreshToken();
         }
         RefreshTokenRequest request = new RefreshTokenRequest();
         request.setRefreshToken(refreshTokenCookie);
-        AuthResponse tokens = authService.refresh(request);
-
-        var accessCookie = cookieUtils.createTokenCookie("accessToken", tokens.getAccessToken(), 3600); // 1 hr
-        var refreshCookie = cookieUtils.createTokenCookie("refreshToken", tokens.getRefreshToken(), 604800); // 7 days
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-                .build();
+        return respondWithTokenCookies(authService.refresh(request));
     }
 
     @GetMapping("/me")
     public ResponseEntity<UserMeResponse> getCurrentUser(@CurrentUser User user) {
-        log.info("AUTH_ME_RESOLVED_USER: id={}, email={}, roles={}", user.getId(), user.getEmail(), user.getRoles());
-        UserMeResponse userDto = userService.getUserMeInfo(user);
-        log.info("FINAL_USER_DTO: {}", userDto);
-        return ResponseEntity.ok(userDto);
+        return ResponseEntity.ok(userService.getUserMeInfo(user));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@CookieValue(name = "refreshToken", required = false) String refreshTokenCookie) {
+    public ResponseEntity<Void> logout(@CookieValue(name = REFRESH_TOKEN_COOKIE, required = false) String refreshTokenCookie) {
         if (refreshTokenCookie != null) {
             LogoutRequest request = new LogoutRequest();
             request.setRefreshToken(refreshTokenCookie);
             authService.logout(request);
         }
-        var accessCookie = cookieUtils.cleanCookie("accessToken");
-        var refreshCookie = cookieUtils.cleanCookie("refreshToken");
-
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, cookieUtils.cleanCookie(ACCESS_TOKEN_COOKIE).toString())
+                .header(HttpHeaders.SET_COOKIE, cookieUtils.cleanCookie(REFRESH_TOKEN_COOKIE).toString())
                 .build();
     }
 
@@ -124,5 +116,15 @@ public class AuthController {
     public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         authService.resetPassword(request);
         return ResponseEntity.ok(new MessageResponse("Пароль успешно обновлён"));
+    }
+
+    /** Отдаёт пустой 200 с обновлённой парой cookie — общий хвост для login и refresh. */
+    private ResponseEntity<Void> respondWithTokenCookies(AuthResponse tokens) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE,
+                        cookieUtils.createTokenCookie(ACCESS_TOKEN_COOKIE, tokens.getAccessToken(), accessCookieTtl).toString())
+                .header(HttpHeaders.SET_COOKIE,
+                        cookieUtils.createTokenCookie(REFRESH_TOKEN_COOKIE, tokens.getRefreshToken(), refreshCookieTtl).toString())
+                .build();
     }
 }
