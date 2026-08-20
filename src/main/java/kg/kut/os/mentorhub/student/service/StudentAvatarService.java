@@ -1,6 +1,6 @@
 package kg.kut.os.mentorhub.student.service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import kg.kut.os.mentorhub.auth.entity.User;
 import kg.kut.os.mentorhub.common.dto.AvatarResponse;
 import kg.kut.os.mentorhub.common.exception.NotFoundException;

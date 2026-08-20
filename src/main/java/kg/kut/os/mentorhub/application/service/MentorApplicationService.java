@@ -1,6 +1,6 @@
 package kg.kut.os.mentorhub.application.service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import kg.kut.os.mentorhub.application.dto.*;
 import kg.kut.os.mentorhub.application.entity.MentorApplication;
 import kg.kut.os.mentorhub.application.entity.MentorApplicationStatus;
